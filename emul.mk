@@ -6,7 +6,7 @@
 
 include common.mk
 
-QUANT_BITS = 8
+QUANT_BITS = 16
 MODEL_SUFFIX=_$(QUANT_BITS)BIT_EMUL
 
 $(info Building emulation mode with 8 bit quantization)
@@ -15,7 +15,7 @@ $(info Building emulation mode with 8 bit quantization)
 # the quantization. This is because in 8 bit mode we used signed
 # 8 bit so the input to the model needs to be shifted 1 bit
 
-NNTOOL_SCRIPT=model/nntool_script_emul8
+NNTOOL_SCRIPT=model/nntool_script
 TRAINED_TFLITE_MODEL=model/model.onnx
 
 include ../common/model_decl.mk

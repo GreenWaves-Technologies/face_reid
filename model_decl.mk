@@ -5,8 +5,7 @@
 # of the BSD license.  See the LICENSE file for details.
 
 MODEL_SUFFIX?=
-
-MODEL_PREFIX?=vww
+MODEL_PREFIX?=
 
 # The training of the model is slightly different depending on
 # the quantization. This is because in 8 bit mode we used signed

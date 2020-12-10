@@ -22,7 +22,7 @@
 #define __STR(__s) #__s
 
 #define AT_INPUT_SIZE (AT_INPUT_WIDTH*AT_INPUT_HEIGHT*AT_INPUT_COLORS)
-#define PIXEL_SIZE 1
+#define PIXEL_SIZE 2
 
 typedef struct{
     unsigned short* in;
@@ -46,9 +46,24 @@ static struct pi_device camera;
 #define PRINTF printf
 #endif
 // Softmax always outputs Q15 short int even from 8 bit input
-PI_L2 short int *ResOut;
+PI_L2 short int *ResOut0;
+PI_L2 short int *ResOut1;
+
 uint8_t *Input_1;
 
+
+unsigned int l2_distance(const short int* v1, const short int* v2)
+{
+    unsigned int sum = 0;
+
+    for (int i = 0; i < FACE_DESCRIPTOR_SIZE; i++)
+    {
+        int delta = v1[i] - v2[i];
+        sum += delta * delta;
+    }
+
+    return sum;
+}
 
 static void RunNetwork(cluster_arg_t*arg)
 {
@@ -63,7 +78,7 @@ static void RunNetwork(cluster_arg_t*arg)
 
 int start()
 {
-    char *ImageName = __XSTR(AT_IMAGE);
+    //char *ImageName = __XSTR(AT_IMAGE);
     struct pi_device cluster_dev;
     struct pi_cluster_task *task;
     struct pi_cluster_conf conf;
@@ -84,8 +99,9 @@ int start()
     //#endif
 
     //Allocating output
-    ResOut = (short int *) pmsis_l2_malloc( 512*sizeof(short int));
-    if (ResOut==0) {
+    ResOut0 = (short int *) pmsis_l2_malloc( FACE_DESCRIPTOR_SIZE*sizeof(short int));
+    ResOut1 = (short int *) pmsis_l2_malloc( FACE_DESCRIPTOR_SIZE*sizeof(short int));
+    if (ResOut0==NULL || ResOut1==NULL) {
         printf("Failed to allocate Memory for Result (%ld bytes)\n", 2*sizeof(short int));
         pmsis_exit(-1);
     }
@@ -97,14 +113,6 @@ int start()
         printf("Failed to allocate Memory for input (%ld bytes)\n", AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
         pmsis_exit(-1);
     }
-
-    PRINTF("Reading image\n");
-    //Reading Image from Bridge
-    if (ReadImageFromFile(ImageName, AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS, Input_1, AT_INPUT_SIZE*PIXEL_SIZE, IMGIO_OUTPUT_CHAR, 0)) {
-        printf("Failed to load image %s\n", ImageName);
-        pmsis_exit(-1);
-    }
-    PRINTF("Finished reading image\n");
 #else
     //Allocate double the buffer for double buffering
     Input_1 = (uint8_t*)pmsis_l2_malloc(AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE *2);
@@ -182,23 +190,17 @@ int start()
 
     int iter=1;
     do{
-
-        #ifndef FROM_CAMERA
-            iter=0;
-            arg.in=Input_1;
-            arg.out=ResOut;
-        #else
-            pi_task_wait_on(&task_1);
-            pi_task_wait_on(&task_2);
-            pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
-            //We need to calls since uDMA max transfer is 128KB
-            pi_camera_capture_async(&camera, Input_1 + (iter%2?AT_INPUT_WIDTH*AT_INPUT_HEIGHT*2:0), AT_INPUT_WIDTH*AT_INPUT_HEIGHT,pi_task_block(&task_1));
-            pi_camera_capture_async(&camera, Input_1+(iter%2?AT_INPUT_WIDTH*AT_INPUT_HEIGHT*2:0)+AT_INPUT_WIDTH*AT_INPUT_HEIGHT, AT_INPUT_WIDTH*AT_INPUT_HEIGHT,pi_task_block(&task_2));
-            pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
-            arg.in=Input_1+(iter%2?0:AT_INPUT_WIDTH*AT_INPUT_HEIGHT*2);
-            arg.out=ResOut;
-        #endif
-    
+        iter=0;
+        arg.in=Input_1;
+        arg.out=ResOut0;
+        PRINTF("Reading image\n");
+        //Reading Image from Bridge
+        if (ReadImageFromFile("../../../images/leo.pgm", AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS, Input_1, AT_INPUT_SIZE*PIXEL_SIZE, IMGIO_OUTPUT_CHAR, 0)) {
+            printf("Failed to load image\n");
+            pmsis_exit(-1);
+        }
+        PRINTF("Finished reading image\n");
+        
         #ifdef GPIO 
         pi_gpio_pin_write(&gpio_a1, gpio_out_a1, 1);
         #endif
@@ -212,6 +214,15 @@ int start()
         #ifdef GPIO 
         pi_gpio_pin_write(&gpio_a1, gpio_out_a1, 0);
         #endif
+        arg.out=ResOut1;
+        PRINTF("Reading image\n");
+        //Reading Image from Bridge
+        if (ReadImageFromFile("../../../images/leo2.pgm", AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS, Input_1, AT_INPUT_SIZE*PIXEL_SIZE, IMGIO_OUTPUT_CHAR, 0)) {
+            printf("Failed to load image\n");
+            pmsis_exit(-1);
+        }
+        PRINTF("Finished reading image\n");
+        
         /*float person_not_seen = FIX2FP(ResOut[0] * S68_Op_output_1_OUT_QSCALE, S68_Op_output_1_OUT_QNORM);
         float person_seen = FIX2FP(ResOut[1] * S68_Op_output_1_OUT_QSCALE, S68_Op_output_1_OUT_QNORM);
 
@@ -220,7 +231,15 @@ int start()
         } else {
             PRINTF("no person seen %f\n", person_not_seen);
         }
-        */#else
+        */
+        unsigned int distance = l2_distance(ResOut0,ResOut1);
+        printf("distance: %d\n",distance);
+
+        /*for(int i=0;i<FACE_DESCRIPTOR_SIZE;i++){
+            printf("%f ",FIX2FP(ResOut[i] * S37_Op_output_1_OUT_QSCALE, S37_Op_output_1_OUT_QNORM));
+        }
+*/
+        #else
         buffer.data = arg.in;
         //Write to image to LCD while processing NN on cluster
         pi_display_write(&ili, &buffer, 41,16, AT_INPUT_WIDTH, AT_INPUT_HEIGHT);
@@ -257,11 +276,12 @@ int start()
         printf("\n");
     }
 #endif
-    //Checks for jenkins:
-    if(ResOut[0] == 4982 && ResOut[1] ==  27785) { printf("Correct Results!\n");pmsis_exit(0);}
-    else { printf("Wrong Results!\n");pmsis_exit(-1);}
+    //Checks for jenkins
+    //TODO
         
-    pmsis_l2_malloc_free(ResOut, 2*sizeof(short int));
+    pmsis_l2_malloc_free(ResOut0, 2*sizeof(short int));
+    pmsis_l2_malloc_free(ResOut1, 2*sizeof(short int));
+    
     pmsis_l2_malloc_free(Input_1,AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
     PRINTF("Ended\n");
     pmsis_exit(0);
