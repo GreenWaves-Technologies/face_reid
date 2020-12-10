@@ -200,6 +200,10 @@ int start()
             pmsis_exit(-1);
         }
         PRINTF("Finished reading image\n");
+        int16_t *Input_1_short=Input_1;
+        for(int i=(128*128)-1;i>=0;i--){
+            Input_1_short[i]=((short int)Input_1[i])<<S0_Op_input_1_Q;
+        }
         
         #ifdef GPIO 
         pi_gpio_pin_write(&gpio_a1, gpio_out_a1, 1);
@@ -222,6 +226,16 @@ int start()
             pmsis_exit(-1);
         }
         PRINTF("Finished reading image\n");
+        Input_1_short=Input_1;
+        for(int i=(128*128)-1;i>=0;i--){
+            Input_1_short[i]=((short int)Input_1[i])<<S0_Op_input_1_Q;
+        }
+        
+        pi_task_block(&wait_task);
+        pi_cluster_send_task_to_cl_async(&cluster_dev, task,&wait_task);
+
+        pi_task_wait_on(&wait_task);
+        
         
         /*float person_not_seen = FIX2FP(ResOut[0] * S68_Op_output_1_OUT_QSCALE, S68_Op_output_1_OUT_QNORM);
         float person_seen = FIX2FP(ResOut[1] * S68_Op_output_1_OUT_QSCALE, S68_Op_output_1_OUT_QNORM);

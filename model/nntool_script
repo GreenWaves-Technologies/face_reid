@@ -2,7 +2,7 @@ set debug true
 adjust
 fusions --pow2
 set input_norm_func "x: x"
-aquant -s POW2 -f 16 images/* -D 1 -O0
+aquant -s POW2 -f 16 images/* 
 #imageformat input_1 bw8 out_int16 
 #imageformat input_1 rgb565 offset_int8
 #imageformat input_1 rgb565_rgb888 offset_int8
