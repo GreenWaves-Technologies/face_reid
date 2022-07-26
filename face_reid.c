@@ -99,8 +99,8 @@ int start()
     //#endif
 
     //Allocating output
-    ResOut0 = (short int *) pmsis_l2_malloc( FACE_DESCRIPTOR_SIZE*sizeof(short int));
-    ResOut1 = (short int *) pmsis_l2_malloc( FACE_DESCRIPTOR_SIZE*sizeof(short int));
+    ResOut0 = (short int *) pi_l2_malloc( FACE_DESCRIPTOR_SIZE*sizeof(short int));
+    ResOut1 = (short int *) pi_l2_malloc( FACE_DESCRIPTOR_SIZE*sizeof(short int));
     if (ResOut0==NULL || ResOut1==NULL) {
         printf("Failed to allocate Memory for Result (%ld bytes)\n", 2*sizeof(short int));
         pmsis_exit(-1);
@@ -108,14 +108,14 @@ int start()
 
 #ifndef FROM_CAMERA
     //allocating input
-    Input_1 = (uint8_t*)pmsis_l2_malloc(AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
+    Input_1 = (uint8_t*)pi_l2_malloc(AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
     if (Input_1==0) {
         printf("Failed to allocate Memory for input (%ld bytes)\n", AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
         pmsis_exit(-1);
     }
 #else
     //Allocate double the buffer for double buffering
-    Input_1 = (uint8_t*)pmsis_l2_malloc(AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE *2);
+    Input_1 = (uint8_t*)pi_l2_malloc(AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE *2);
     if (Input_1==0) {
         printf("Failed to allocate Memory for input (%ld bytes)\n", AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE*2);
         pmsis_exit(-1);
@@ -156,7 +156,7 @@ int start()
         pmsis_exit(-7);
     }
     
-    task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+    task = pi_l2_malloc(sizeof(struct pi_cluster_task));
     memset(task, 0, sizeof(struct pi_cluster_task));
     task->entry = &RunNetwork;
     task->stack_size = CLUSTER_STACK_SIZE;
@@ -293,10 +293,10 @@ int start()
     //Checks for jenkins
     //TODO
         
-    pmsis_l2_malloc_free(ResOut0, 2*sizeof(short int));
-    pmsis_l2_malloc_free(ResOut1, 2*sizeof(short int));
+    pi_l2_free(ResOut0, 2*sizeof(short int));
+    pi_l2_free(ResOut1, 2*sizeof(short int));
     
-    pmsis_l2_malloc_free(Input_1,AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
+    pi_l2_free(Input_1,AT_INPUT_WIDTH*AT_INPUT_HEIGHT*PIXEL_SIZE);
     PRINTF("Ended\n");
     pmsis_exit(0);
     return 0;
