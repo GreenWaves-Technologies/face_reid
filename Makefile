@@ -91,8 +91,8 @@ endif
 READFS_FILES=$(abspath $(MODEL_TENSORS))
 PLPBRIDGE_FLAGS += -f
 
-# all depends on the model
-all:: model
+# build depends on the model
+build:: model
 
 #clean:: clean_model
 
