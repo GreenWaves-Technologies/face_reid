@@ -51,10 +51,9 @@ ckpt = torch.load("model/best/050.pt")
 
 fake_input=torch.Tensor(1,3,112,112)
 
-
-torch.onnx.export(ckpt,       # model being run
+torch.onnx.export(ckpt.cpu(),       # model being run
                   fake_input,               # model input (or a tuple for multiple inputs)
-                  "shufflenet.onnx",   # where to save the model (can be a file or file-like object)
+                  "../model/shufflenet.onnx",   # where to save the model (can be a file or file-like object)
                   export_params=True,        # store the trained parameter weights inside the model file
                   opset_version=12,          # the ONNX version to export the model to
                   do_constant_folding=True,  # whether to execute constant folding for optimization
