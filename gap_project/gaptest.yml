@@ -1,0 +1,22 @@
+name: face_id
+variants:
+    gvsoc:
+        chip: gap9
+        board: gap9evk
+        platform: gvsoc
+        os: freertos
+        builder: cmake
+        flags:
+            - CONFIG_TEST_IMAGE="../cropped_faces/francesco_1.png_face_crop.ppm"
+            - CONFIG_CI=y
+            
+
+    board:
+        chip: gap9
+        board: gap9evk
+        platform: board
+        os: freertos
+        builder: cmake
+        flags:
+            - CONFIG_TEST_IMAGE="../cropped_faces/francesco_1.png_face_crop.ppm"
+            - CONFIG_CI=y
