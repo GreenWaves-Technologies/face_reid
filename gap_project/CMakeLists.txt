@@ -10,8 +10,6 @@ set(MAIN                face_id.c)
 
 include($ENV{GAP_SDK_HOME}/utils/cmake/setup.cmake)
 
-
-
 ###############################################################################
 # Autotiler Variables
 ###############################################################################
@@ -32,10 +30,6 @@ add_custom_command(
                                                                --tensors_dir=${AT_TENSORS_DIR}
                                                                --quant_files="/home/francesco/works/machine_learning/face_id/DATASETS/CASIA-WebFace_cropped/"
                                                                --gen_model_path=${AT_MODEL_DIR}
-                                                              #  --flash_type=${MODEL_L3_FLASH}
-                                                              #  --ram_type=${MODEL_L3_RAM}
-                                                              #  ${CONFIG_QUANTIZED_TFLITE_MODEL}
-                                                              #  ${CONFIG_MODEL_FLAG}
 )
 
 ###############################################################################
@@ -70,7 +64,7 @@ list(APPEND TARGET_PREPROCESSOR -DPERF
                                 -DAT_MODEL_PREFIX=${MODEL_PREFIX}
                                 -DSTACK_SIZE=${CONFIG_CL_MASTER_CORE_STACK_SIZE}
                                 -DSLAVE_STACK_SIZE=${CONFIG_CL_SLAVE_CORE_STACK_SIZE}
-                                -DINPUT_IMAGE=${CONFIG_TEST_IMAGE}       
+                                -DINPUT_IMAGE=${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_TEST_IMAGE}       
 )
 
 if (CONFIG_CI)

@@ -20,7 +20,7 @@
 #ifndef STACK_SIZE
 #define STACK_SIZE      1024
 #endif
-#define CI
+
 #ifdef CI
 #include "golden.h"
 #endif

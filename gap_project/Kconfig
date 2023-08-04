@@ -32,7 +32,7 @@ menu "Face ID menu"
     config TEST_IMAGE
         #depends on ENABLE_NNTOOL
         string "Face ID test image"
-        default "../cropped_faces/francesco_1.png_face_crop.ppm"
+        default "cropped_faces/francesco_1.png_face_crop.ppm"
         help
             Specify test image url.
 
