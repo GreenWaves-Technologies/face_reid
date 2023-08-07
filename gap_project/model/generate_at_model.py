@@ -1,4 +1,5 @@
-import argparse, random, os, cv2
+import argparse, random, os
+from PIL import Image
 import numpy as np
 from scipy.spatial import distance
 from numpy.linalg import norm
@@ -49,7 +50,8 @@ if __name__ == "__main__":
 
     def representative_dataset():
         for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
-            img = (((cv2.imread(image).astype(np.float32))) / 256)
+            img = (np.array(Image.open(image)).astype(np.float32))
+            img = img / 256
             img = img.transpose(2, 0, 1)
             #img=img.reshape(3,112,112)
             yield img

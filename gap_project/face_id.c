@@ -72,11 +72,11 @@ int face_id(void)
         return 1;
 	}
     
-     for(int i = 0;i<FACE_ID_W*FACE_ID_H;i++){
-        unsigned char tmp = Input[i*3];
-        Input[i*3]=Input[i*3+2];
-        Input[i*3+2]=tmp;
-    }
+//     for(int i = 0;i<FACE_ID_W*FACE_ID_H;i++){
+//        unsigned char tmp = Input[i*3];
+//        Input[i*3]=Input[i*3+2];
+//        Input[i*3+2]=tmp;
+//    }
 
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
@@ -148,6 +148,11 @@ int face_id(void)
 		printf("\n");
 	}
 #endif
+
+    // Decomment to print output tensor
+    // printf("Output:\n");
+    // for(int i=0;i<128;i++)printf("%f ",Output[i]);
+    // printf("\n\n");
 
     #ifdef CI
     for(int i=0;i<128;i++){
