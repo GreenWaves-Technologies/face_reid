@@ -37,6 +37,7 @@ add_custom_command(
 ###############################################################################
 
 list(APPEND TARGET_SRCS ${MAIN}
+                        he.c
                         ${CNN_LIB}
                         ${CONFIG_MODEL_BUILDDIR}/${KERNEL_C}
                         ${MODEL_EXPRESSIONS}

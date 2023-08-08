@@ -16,6 +16,9 @@
 #include "face_idKernels.h"
 #include "gaplib/fs_switch.h"
 #include "gaplib/ImgIO.h"
+#include "he.h"
+
+#define IMG_TEST_N 4
 
 #ifndef STACK_SIZE
 #define STACK_SIZE      1024
@@ -48,6 +51,33 @@ static void cluster(void*Arg)
 
 }
 
+char*image_list[128]={
+    "../cropped_faces/francesco_1.png_face_crop.ppm",
+    "../cropped_faces/francesco_2.png_face_crop.ppm",
+    "../cropped_faces/manuele_1.png_face_crop.ppm",
+    "../cropped_faces/manuele_2.png_face_crop.ppm"
+};
+
+// def cos_sim(a,b):
+//     return 100*round(1 - (np.dot(a, b)/(norm(a)*norm(b))),4)
+
+float cosine_similarity(F16*a, F16*b){
+    F16 norm_a=0,norm_b=0;
+    for(int i=0;i<128;i++){
+        norm_a += a[i]*a[i];
+        norm_b += b[i]*b[i];
+    }
+    norm_a=sqrt(norm_a);
+    norm_b=sqrt(norm_b);
+    
+    F16 dot_p=0;
+    for(int i=0;i<128;i++){
+        dot_p+=(a[i]*b[i]);
+    }
+
+    return dot_p/(norm_a*norm_b);
+}
+
 int face_id(void)
 {
     printf("Entering main controller\n");
@@ -58,25 +88,16 @@ int face_id(void)
         printf("Error allocating input buffer...\n");
         return -1;
     }
-    F16* Output = (F16*)pi_l2_malloc(128*sizeof(F16));
-    if(Output==NULL){
-        printf("Error allocating output buffer...\n");
-        return -1;
-    }
+    // Create space for 3 images to test face reid
+    F16** Output = (F16**)pi_l2_malloc(IMG_TEST_N*sizeof(F16*));
 
-    char* ImageName = __XSTR(INPUT_IMAGE);
-    printf("Reading image %s\n", ImageName);
-	//Reading Image from Bridge
-	if (ReadImageFromFile(ImageName, FACE_ID_W, FACE_ID_H, FACE_ID_C, Input, FACE_ID_SIZE*sizeof(char), IMGIO_OUTPUT_CHAR, 0)) {
-        printf("Failed to load image %s\n", ImageName);
-        return 1;
-	}
-    
-//     for(int i = 0;i<FACE_ID_W*FACE_ID_H;i++){
-//        unsigned char tmp = Input[i*3];
-//        Input[i*3]=Input[i*3+2];
-//        Input[i*3+2]=tmp;
-//    }
+    for (int i=0;i<IMG_TEST_N;i++){
+        Output[i] = (F16*)pi_l2_malloc(128*sizeof(F16));
+        if(Output[i]==NULL){
+            printf("Error allocating output buffer...\n");
+            return -1;
+        }
+    }
 
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
@@ -109,28 +130,40 @@ int face_id(void)
         pmsis_exit(-6);
     }
     
-    fi_cluster_arg.input=Input;
-    fi_cluster_arg.output=Output;
 
-    {
-        pi_perf_conf(1 << PI_PERF_CYCLES | 1 << PI_PERF_ACTIVE_CYCLES);
-        gap_fc_starttimer();
-        gap_fc_resethwtimer();
-        int start = gap_fc_readhwtimer();
-        struct pi_cluster_task task_ctor;
-        pi_cluster_task(&task_ctor, (void (*)(void *)) face_idCNN_ConstructCluster, NULL);
-        pi_cluster_send_task_to_cl(&cluster_dev, &task_ctor);
-        int elapsed = gap_fc_readhwtimer() - start;
-        printf("L1 Promotion copy took %d FC Cycles\n", elapsed);
+    for (int i=0;i<IMG_TEST_N;i++){
+        printf("Reading image %s\n", image_list[i]);
+        if (ReadImageFromFile(image_list[i], FACE_ID_W, FACE_ID_H, FACE_ID_C, Input, FACE_ID_SIZE*sizeof(char), IMGIO_OUTPUT_CHAR, 0)) {
+            printf("Failed to load image %s\n", image_list[i]);
+            return 1;
+        }
+
+
+        #if EQ_HIST
+        histogram_eq_HWC_fc(Input,FACE_ID_W, FACE_ID_H);
+        #endif
+        fi_cluster_arg.input=Input;
+        fi_cluster_arg.output=Output[i];
+
+        {
+            pi_perf_conf(1 << PI_PERF_CYCLES | 1 << PI_PERF_ACTIVE_CYCLES);
+            gap_fc_starttimer();
+            gap_fc_resethwtimer();
+            int start = gap_fc_readhwtimer();
+            struct pi_cluster_task task_ctor;
+            pi_cluster_task(&task_ctor, (void (*)(void *)) face_idCNN_ConstructCluster, NULL);
+            pi_cluster_send_task_to_cl(&cluster_dev, &task_ctor);
+            int elapsed = gap_fc_readhwtimer() - start;
+            printf("L1 Promotion copy took %d FC Cycles\n", elapsed);
+        }
+
+        printf("Call cluster\n");
+        struct pi_cluster_task task;
+        pi_cluster_task(&task, (void (*)(void *))cluster, &fi_cluster_arg);
+        pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
+
+        pi_cluster_send_task_to_cl(&cluster_dev, &task);
     }
-
-    printf("Call cluster\n");
-    struct pi_cluster_task task;
-    pi_cluster_task(&task, (void (*)(void *))cluster, &fi_cluster_arg);
-    pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
-
-    pi_cluster_send_task_to_cl(&cluster_dev, &task);
-
     face_idCNN_Destruct();
 
 #ifdef PERF
@@ -149,6 +182,13 @@ int face_id(void)
 	}
 #endif
 
+
+    printf("Cosine similarity results:\n");
+    printf("Cosine similarity francesco1 - francesco2: %f\n",cosine_similarity(Output[0],Output[1]));
+    printf("Cosine similarity manuele1 - manuele2: %f\n",cosine_similarity(Output[2],Output[3]));
+    printf("Cosine similarity francesco1 - manuele1: %f\n",cosine_similarity(Output[0],Output[2]));
+    printf("Cosine similarity francesco2 - manuele2: %f\n",cosine_similarity(Output[1],Output[3]));
+    
     // Decomment to print output tensor
     // printf("Output:\n");
     // for(int i=0;i<128;i++)printf("%f ",Output[i]);
@@ -156,9 +196,9 @@ int face_id(void)
 
     #ifdef CI
     for(int i=0;i<128;i++){
-        if(fabs(Output[i]-golden[i])>0.001){
+        if(fabs(Output[0][i]-golden[i])>0.001){
             printf("CI check error...\n");
-            printf("%d index - value output %f : value golden %f\n",i,Output[i],golden[i]);
+            printf("%d index - value output %f : value golden %f\n",i,Output[0][i],golden[i]);
             return -1;
         }
     }
