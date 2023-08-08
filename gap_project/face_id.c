@@ -20,6 +20,9 @@
 
 #define IMG_TEST_N 4
 
+#define __XSTR(__s) __STR(__s)
+#define __STR(__s) #__s 
+
 #ifndef STACK_SIZE
 #define STACK_SIZE      1024
 #endif
@@ -52,14 +55,11 @@ static void cluster(void*Arg)
 }
 
 char*image_list[128]={
-    "../cropped_faces/francesco_1.png_face_crop.ppm",
-    "../cropped_faces/francesco_2.png_face_crop.ppm",
-    "../cropped_faces/manuele_1.png_face_crop.ppm",
-    "../cropped_faces/manuele_2.png_face_crop.ppm"
+     __XSTR(INPUT_IMAGE_1),
+     __XSTR(INPUT_IMAGE_2),
+     __XSTR(INPUT_IMAGE_3),
+     __XSTR(INPUT_IMAGE_4)
 };
-
-// def cos_sim(a,b):
-//     return 100*round(1 - (np.dot(a, b)/(norm(a)*norm(b))),4)
 
 float cosine_similarity(F16*a, F16*b){
     F16 norm_a=0,norm_b=0;
@@ -139,7 +139,7 @@ int face_id(void)
         }
 
 
-        #if EQ_HIST
+        #ifdef EQ_HIST
         histogram_eq_HWC_fc(Input,FACE_ID_W, FACE_ID_H);
         #endif
         fi_cluster_arg.input=Input;

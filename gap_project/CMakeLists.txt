@@ -65,7 +65,10 @@ list(APPEND TARGET_PREPROCESSOR -DPERF
                                 -DAT_MODEL_PREFIX=${MODEL_PREFIX}
                                 -DSTACK_SIZE=${CONFIG_CL_MASTER_CORE_STACK_SIZE}
                                 -DSLAVE_STACK_SIZE=${CONFIG_CL_SLAVE_CORE_STACK_SIZE}
-                                -DINPUT_IMAGE=${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_TEST_IMAGE}       
+                                -DINPUT_IMAGE_1=${CMAKE_CURRENT_SOURCE_DIR}/cropped_faces/francesco_1.png_face_crop.ppm
+                                -DINPUT_IMAGE_2=${CMAKE_CURRENT_SOURCE_DIR}/cropped_faces/francesco_2.png_face_crop.ppm
+                                -DINPUT_IMAGE_3=${CMAKE_CURRENT_SOURCE_DIR}/cropped_faces/manuele_1.png_face_crop.ppm
+                                -DINPUT_IMAGE_4=${CMAKE_CURRENT_SOURCE_DIR}/cropped_faces/manuele_2.png_face_crop.ppm
 )
 
 if (CONFIG_CI)
