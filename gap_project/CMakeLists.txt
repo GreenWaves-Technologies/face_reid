@@ -28,7 +28,7 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/model/generate_at_model.py
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/model/generate_at_model.py --model_path=${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NNTOOL_MODEL_PATH}
                                                                --tensors_dir=${AT_TENSORS_DIR}
-                                                               --quant_files="/home/francesco/works/machine_learning/face_id/DATASETS/CASIA-WebFace_cropped/"
+                                                               --quant_files=${CMAKE_CURRENT_SOURCE_DIR}/quant_dataset/
                                                                --gen_model_path=${AT_MODEL_DIR}
 )
 
