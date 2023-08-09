@@ -8,7 +8,6 @@
  *
  */
 
-
 /* Autotiler includes. */
 #include <stdlib.h>
 #include <math.h>
@@ -130,7 +129,7 @@ int face_id(void)
         pmsis_exit(-6);
     }
     
-
+    
     for (int i=0;i<IMG_TEST_N;i++){
         printf("Reading image %s\n", image_list[i]);
         if (ReadImageFromFile(image_list[i], FACE_ID_W, FACE_ID_H, FACE_ID_C, Input, FACE_ID_SIZE*sizeof(char), IMGIO_OUTPUT_CHAR, 0)) {
