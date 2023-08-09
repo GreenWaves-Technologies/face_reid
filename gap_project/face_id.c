@@ -145,6 +145,7 @@ int face_id(void)
         fi_cluster_arg.input=Input;
         fi_cluster_arg.output=Output[i];
 
+        #ifdef L1_PROMOTION
         {
             pi_perf_conf(1 << PI_PERF_CYCLES | 1 << PI_PERF_ACTIVE_CYCLES);
             gap_fc_starttimer();
@@ -156,6 +157,7 @@ int face_id(void)
             int elapsed = gap_fc_readhwtimer() - start;
             printf("L1 Promotion copy took %d FC Cycles\n", elapsed);
         }
+        #endif
 
         printf("Call cluster\n");
         struct pi_cluster_task task;
@@ -191,7 +193,7 @@ int face_id(void)
     
     // Decomment to print output tensor
     // printf("Output:\n");
-    // for(int i=0;i<128;i++)printf("%f ",Output[i]);
+    // for(int i=0;i<128;i++)printf("%f ",Output[0][i]);
     // printf("\n\n");
 
     #ifdef CI
