@@ -27,7 +27,14 @@ if __name__ == "__main__":
                         help="L2 memory size for AT code generation")
     parser.add_argument("--l3_size", default=8000000, type=int, required=False,
                         help="L3 memory size for AT code generation")
+    parser.add_argument("--model_file", default="", type=str, required=False,
+                        help="AT model file name")
+    parser.add_argument("--gen_name_suffix", default="", type=str, required=False,
+                        help="AT generated file suffix")
+    parser.add_argument("--CI", default=0, type=int, required=False,
+                        help="AT generated file suffix")
     
+
     args = parser.parse_args()
     
     #Load Graph, adjust and fusions
@@ -42,7 +49,7 @@ if __name__ == "__main__":
     CALIBRATION_IMGS = []
 
     #init seed to be reproducible choices
-    random.seed(10)
+    #random.seed(10)
 
     for root, dirs, files in os.walk(args.quant_files):
         for file in files:
@@ -50,17 +57,27 @@ if __name__ == "__main__":
 
     def representative_dataset():
         #for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
-        for image in tqdm(CALIBRATION_IMGS):
-            img = (np.array(Image.open(image)).astype(np.float32))
-            img = img / 256
-            img = img.transpose(2, 0, 1)
-            #img=img.reshape(3,112,112)
-            yield img
+        if args.CI:
+            for image in CALIBRATION_IMGS:
+                img = (np.array(Image.open(image)).astype(np.float32))
+                img = img / 256
+                img = img.transpose(2, 0, 1)
+                #img=img.reshape(3,112,112)
+                yield img
+        else:
+            for image in tqdm(CALIBRATION_IMGS):
+                img = (np.array(Image.open(image)).astype(np.float32))
+                img = img / 256
+                img = img.transpose(2, 0, 1)
+                #img=img.reshape(3,112,112)
+                yield img
 
 
     float_nodes=['_gdc_gdc_0_Conv_fusion_qin0','_gdc_gdc_0_Conv_fusion','_linearconv_Conv_qin0','_linearconv_Conv','_linearconv_Conv_reshape','_Reshape_2','output_1' ]
     
     stats = G.collect_statistics(representative_dataset())
+    #np.save("../model/stats",stats)
+    #stats = np.load("../model/stats.npy", allow_pickle=True)
     #force_input_size=16,force_output_size=16
     G.quantize(
         statistics=stats,
@@ -80,7 +97,16 @@ if __name__ == "__main__":
     #     })
     
     res = G.gen_at_model(
-        settings=model_settings(l1_size=128000,l2_size=512000,tensor_directory=args.tensors_dir,l3_ram_ext_managed=False,l3_flash_ext_managed=False,graph_l1_promotion=False),
+        settings=model_settings(l1_size=args.l1_size,
+                                l2_size=args.l2_size,
+                                l3_size=args.l3_size, 
+                                tensor_directory=args.tensors_dir,
+                                l3_ram_ext_managed=False,
+                                l3_flash_ext_managed=False,
+                                graph_l1_promotion=False,
+                                gen_name_suffix=args.gen_name_suffix,
+                                model_file=args.model_file,
+                                ),
         directory=args.gen_model_path,
         at_loglevel=1
     )

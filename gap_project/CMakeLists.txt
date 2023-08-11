@@ -14,23 +14,87 @@ include($ENV{GAP_SDK_HOME}/utils/cmake/setup.cmake)
 # Autotiler Variables
 ###############################################################################
 
-set(MODEL_EXPRESSIONS  ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_MODEL_BUILDDIR}/Expression_Kernels.c)
-set(AT_MODEL_DIR       ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_MODEL_BUILDDIR})
-set(AT_MODEL_PATH       ${AT_MODEL_DIR}/model.c)
-set(AT_TENSORS_DIR      ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_MODEL_BUILDDIR}/tensors)
+set(CONFIG_MODEL_BUILDDIR BUILD_MODEL)
 
-autotiler_define_gen_names(${TARGET_NAME})
-autotiler_setup(${TARGET_NAME})
+
+set(FACEID_TARGET_NAME       face_id)
+set(FACEID_AT_MODEL_DIR      ${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_MODEL_BUILDDIR})
+set(MODEL_EXPRESSIONS        ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}Expression_Kernels.c)
+
+set(FACEID_AT_BIN            ${FACEID_TARGET_NAME}GenTile)
+set(FACEID_AT_BIN_PATH       ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}GenTile)
+set(FACEID_AT_MODEL_PATH     ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}model.c)
+set(FACEID_AT_TENSORS_DIR    ${FACEID_AT_MODEL_DIR}/tensors)
+set(FACEID_NNTOOL_PY         ${CMAKE_CURRENT_SOURCE_DIR}/model/gen_faceid_at_model.py)
+set(FACEID_NNTOOL_MODEL      face_id.onnx)
+set(FACEID_NNTOOL_MODEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/model/${FACEID_NNTOOL_MODEL})
+set(FACEID_AT_MODEL_NAME     ${FACEID_TARGET_NAME}model.c)
+set(KERNEL_C                 ${FACEID_TARGET_NAME}Kernels.c)
+set(FACEID_KERNEL_C         ${FACEID_AT_MODEL_DIR}/${KERNEL_C})
+
+if(${CONFIG_CI})
+  set(NNTOOL_SCRIPT_CI 1)
+else()
+  set(NNTOOL_SCRIPT_CI 0)
+endif()
 
 add_custom_command(
-  OUTPUT ${AT_MODEL_PATH} ${MODEL_EXPRESSIONS}
-  COMMENT "Generate the autotiler model: ${CONFIG_TRAINED_MODEL} ${CONFIG_MODEL_FLAG} ${CONFIG_QUANTIZED_TFLITE_MODEL}"
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/model/generate_at_model.py
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/model/generate_at_model.py --model_path=${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NNTOOL_MODEL_PATH}
-                                                               --tensors_dir=${AT_TENSORS_DIR}
-                                                               --quant_files=${CMAKE_CURRENT_SOURCE_DIR}/quant_dataset/
-                                                               --gen_model_path=${AT_MODEL_DIR}
+  OUTPUT ${FACEID_AT_MODEL_PATH} #${MODEL_EXPRESSIONS}
+  COMMENT "Generate the autotiler model: ${FACEID_NNTOOL_MODEL}"
+  DEPENDS ${FACEID_NNTOOL_PY}
+  COMMAND python3 ${FACEID_NNTOOL_PY} --model_path=${FACEID_NNTOOL_MODEL_PATH}
+                                      --tensors_dir=${FACEID_AT_TENSORS_DIR}
+                                      --quant_files=${CMAKE_CURRENT_SOURCE_DIR}/quant_dataset/
+                                      --gen_model_path=${FACEID_AT_MODEL_DIR}
+                                      --model_file=${FACEID_AT_MODEL_NAME}
+                                      --gen_name_suffix=${FACEID_TARGET_NAME}
+                                      --CI=${NNTOOL_SCRIPT_CI}
 )
+#add_custom_target(${FACEID_TARGET_NAME}at_model_gen DEPENDS ${FACEID_NNTOOL_PY})
+
+add_custom_command(
+  OUTPUT ${FACEID_AT_BIN_PATH}
+  COMMENT "Generate AT binary for User Kernels generation: ${FACEID_AT_MODEL_NAME}"
+  DEPENDS ${FACEID_AT_MODEL_PATH}
+  COMMAND gcc -o${FACEID_AT_BIN_PATH}
+                  #${FLOAT_PREC} 
+                  -I${TILER_INC} 
+                  -I${TILER_EMU_INC}
+                  -I$ENV{TILER_CNN_GENERATOR_PATH_SQ8}
+                  -I$ENV{TILER_CNN_GENERATOR_PATH_FP16}
+                  -I$ENV{TILER_CNN_GENERATOR_PATH_NE16}
+                  -I$ENV{TILER_CNN_GENERATOR_PATH}
+                  -I$ENV{TILER_CNN_KERNEL_PATH}
+                  -I$ENV{TILER_CNN_KERNEL_PATH_SQ8}
+                  -I$ENV{TILER_CNN_KERNEL_PATH_FP16}
+                  -I$ENV{TILER_CNN_KERNEL_PATH_NE16}
+                  ${CNN_GEN} ${TILER_LIB}
+                  ${MODEL_GEN_SQ8}
+                  ${MODEL_GEN_FP16}
+                  ${MODEL_GEN_NE16}
+                  ${MODEL_GEN}
+                  ${FACEID_AT_MODEL_DIR}/${FACEID_AT_MODEL_NAME} 
+                  $ENV{TILER_LIB}
+)
+
+#add_custom_target(${FACEID_TARGET_NAME}at_model_compile DEPENDS ${FACEID_AT_MODEL_PATH})
+
+add_custom_command( 
+  OUTPUT ${FACEID_KERNEL_C}
+  COMMENT "Generate Autotiler User Kernels: ${FACEID_AT_MODEL_NAME}"
+  DEPENDS ${FACEID_AT_BIN_PATH}
+  COMMAND ${FACEID_AT_MODEL_DIR}/${FACEID_AT_BIN} 
+          -c${FACEID_AT_TENSORS_DIR} 
+          -o${FACEID_AT_MODEL_DIR}
+          --L1=110000 
+          --L2=1200000
+          --L3=8000000
+          
+)
+
+readfs_add_files(FILES ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}_L3_Flash_Const.dat FLASH ${READFS_FLASH})
+
+
 
 ###############################################################################
 # Application dependencies
@@ -39,8 +103,14 @@ add_custom_command(
 list(APPEND TARGET_SRCS ${MAIN}
                         he.c
                         ${CNN_LIB}
-                        ${CONFIG_MODEL_BUILDDIR}/${KERNEL_C}
-                        ${MODEL_EXPRESSIONS}
+                        ${FACEID_KERNEL_C}
+                        ${MODEL_LIB_SQ8}
+                        ${MODEL_LIB_FP16}
+                        ${MODEL_LIB_NE16}
+                        #${MODEL_LIB_DSP}
+                        #${FACEDET_KERNEL_C}
+                        #${CONFIG_MODEL_BUILDDIR}/${KERNEL_C}
+                        #${MODEL_EXPRESSIONS}
 )
 
 list(APPEND TARGET_INCS -I.
@@ -48,7 +118,13 @@ list(APPEND TARGET_INCS -I.
                         -I${TILER_EMU_INC}
                         -I$ENV{GAP_SDK_HOME}/libs/gap_lib/include
                         -I$ENV{GAP_SDK_HOME}/utils/power_meas_utils
-                          ${CNN_LIB_INCLUDE}
+                        # ${CNN_LIB_INCLUDE}
+                        -I$ENV{GAP_H_INC}
+                        -I$ENV{TILER_CNN_KERNEL_PATH}
+                        -I$ENV{TILER_CNN_KERNEL_PATH_SQ8}
+                        -I$ENV{TILER_CNN_KERNEL_PATH_FP16}
+                        -I$ENV{TILER_CNN_KERNEL_PATH_NE16}
+                        -I$ENV{TILER_DSP_KERNEL_PATH}
                         -I${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_MODEL_BUILDDIR}
                         -I${CMAKE_CURRENT_SOURCE_DIR}
                         -I${CMAKE_CURRENT_SOURCE_DIR}/.)

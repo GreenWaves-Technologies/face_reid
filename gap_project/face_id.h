@@ -1,7 +1,6 @@
 #ifndef __shufflenet_H__
 #define __shufflenet_H__
 
-#define __PREFIX(x) shufflenet ## x
 // Include basic GAP builtins defined in the Autotiler
 #include "at_api.h"
 
