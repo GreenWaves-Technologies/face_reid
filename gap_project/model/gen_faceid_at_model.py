@@ -55,22 +55,24 @@ if __name__ == "__main__":
         for file in files:
             CALIBRATION_IMGS.append(os.path.join(root, file))
 
+    print(CALIBRATION_IMGS)
+
     def representative_dataset():
         #for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
-        #if args.CI:
-        for image in CALIBRATION_IMGS:
-            img = (np.array(Image.open(image)).astype(np.float32))
-            img = img / 256
-            img = img.transpose(2, 0, 1)
-            #img=img.reshape(3,112,112)
-            yield img
-        # else:
-        #     for image in tqdm(CALIBRATION_IMGS):
-        #         img = (np.array(Image.open(image)).astype(np.float32))
-        #         img = img / 256
-        #         img = img.transpose(2, 0, 1)
-        #         #img=img.reshape(3,112,112)
-        #         yield img
+        if args.CI:
+            for image in CALIBRATION_IMGS:
+                img = (np.array(Image.open(image)).astype(np.float32))
+                img = img / 256
+                img = img.transpose(2, 0, 1)
+                #img=img.reshape(3,112,112)
+                yield img
+        else:
+            for image in tqdm(CALIBRATION_IMGS):
+                img = (np.array(Image.open(image)).astype(np.float32))
+                img = img / 256
+                img = img.transpose(2, 0, 1)
+                #img=img.reshape(3,112,112)
+                yield img
 
 
     float_nodes=['_gdc_gdc_0_Conv_fusion_qin0','_gdc_gdc_0_Conv_fusion','_linearconv_Conv_qin0','_linearconv_Conv','_linearconv_Conv_reshape','_Reshape_2','output_1' ]
@@ -95,6 +97,7 @@ if __name__ == "__main__":
     #         "scheme": "FLOAT",
     #         "float_type": "float16"
     #     })
+    G.qshow()
     
     res = G.gen_at_model(
         settings=model_settings(l1_size=args.l1_size,
@@ -105,8 +108,7 @@ if __name__ == "__main__":
                                 l3_flash_ext_managed=False,
                                 graph_l1_promotion=False,
                                 gen_name_suffix=args.gen_name_suffix,
-                                model_file=args.model_file,
-                                graph_checksum=True
+                                model_file=args.model_file
                                 ),
         directory=args.gen_model_path,
         at_loglevel=1
