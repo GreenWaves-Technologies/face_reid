@@ -42,7 +42,7 @@ if __name__ == "__main__":
     G.adjust_order()
     G.fusions('scaled_match_group')
     G.fusions('expression_matcher')
-
+    G.name="face_id"
 
     #folder_in = "/home/francesco/works/machine_learning/face_id/DATASETS/CASIA-WebFace_cropped/"
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     #         "scheme": "FLOAT",
     #         "float_type": "float16"
     #     })
-    G.qshow()
+    print(G.qshow())
     
     res = G.gen_at_model(
         settings=model_settings(l1_size=args.l1_size,
