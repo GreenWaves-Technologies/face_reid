@@ -55,8 +55,6 @@ if __name__ == "__main__":
         for file in files:
             CALIBRATION_IMGS.append(os.path.join(root, file))
 
-    print(CALIBRATION_IMGS)
-
     def representative_dataset():
         #for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
         if args.CI:
@@ -81,14 +79,20 @@ if __name__ == "__main__":
     #np.save("../model/stats",stats)
     #stats = np.load("../model/stats.npy", allow_pickle=True)
     #force_input_size=16,force_output_size=16
+
+    nodeqdict={
+        n:quantization_options(scheme="FLOAT",float_type="float16") 
+            for n in float_nodes
+    }
+    #input_qdict={'input_1':quantization_options(bits=8,use_ne16=True,hwc=True,force_input_size=8,force_output_size=16)}
+    #nodeqdict.update(input_qdict)
+
+
     G.quantize(
         statistics=stats,
         graph_options=quantization_options(bits=8,use_ne16=True,hwc=True),
         # Select specific nodes and move to different quantization Scheme - TOTAL FLEXIBILITY
-        node_options={
-            n:quantization_options(scheme="FLOAT",float_type="bfloat16") 
-                for n in float_nodes
-        }
+        node_options=nodeqdict
     )
 
     # G.quantize(

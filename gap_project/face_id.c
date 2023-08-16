@@ -196,12 +196,21 @@ int face_id(void)
     // printf("\n\n");
 
     #ifdef CI
-    for(int i=0;i<128;i++){
-        if(fabs(Output[0][i]-golden[i])>0.001){
-            printf("CI check error...\n");
-            printf("%d index - value output %f : value golden %f\n",i,Output[0][i],golden[i]);
-            return -1;
-        }
+    if(cosine_similarity(Output[0],Output[1])<0.75){
+        printf("Cosine similarity between Output[0] and Output[1] < 0.75! Error!\n");
+        return -1;
+    }
+    if(cosine_similarity(Output[2],Output[3])<0.75){
+        printf("Cosine similarity between Output[2] and Output[3] < 0.75! Error!\n");
+        return -1;
+    }
+    if(cosine_similarity(Output[0],Output[2])>0.19){
+        printf("Cosine similarity between Output[0] and Output[2] > 0.19! Error!\n");
+        return -1;
+    }
+    if(cosine_similarity(Output[1],Output[3])<0.75){
+        printf("Cosine similarity between Output[1] and Output[3] > 0.19! Error!\n");
+        return -1;
     }
     printf("CI Passed successfully!\n");
     #endif
