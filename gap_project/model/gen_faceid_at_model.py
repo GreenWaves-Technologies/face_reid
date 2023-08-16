@@ -106,6 +106,7 @@ if __name__ == "__main__":
                                 graph_l1_promotion=False,
                                 gen_name_suffix=args.gen_name_suffix,
                                 model_file=args.model_file,
+                                graph_checksum=True
                                 ),
         directory=args.gen_model_path,
         at_loglevel=1
