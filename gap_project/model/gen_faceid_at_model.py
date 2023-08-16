@@ -57,20 +57,20 @@ if __name__ == "__main__":
 
     def representative_dataset():
         #for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
-        if args.CI:
-            for image in CALIBRATION_IMGS:
-                img = (np.array(Image.open(image)).astype(np.float32))
-                img = img / 256
-                img = img.transpose(2, 0, 1)
-                #img=img.reshape(3,112,112)
-                yield img
-        else:
-            for image in tqdm(CALIBRATION_IMGS):
-                img = (np.array(Image.open(image)).astype(np.float32))
-                img = img / 256
-                img = img.transpose(2, 0, 1)
-                #img=img.reshape(3,112,112)
-                yield img
+        #if args.CI:
+        for image in CALIBRATION_IMGS:
+            img = (np.array(Image.open(image)).astype(np.float32))
+            img = img / 256
+            img = img.transpose(2, 0, 1)
+            #img=img.reshape(3,112,112)
+            yield img
+        # else:
+        #     for image in tqdm(CALIBRATION_IMGS):
+        #         img = (np.array(Image.open(image)).astype(np.float32))
+        #         img = img / 256
+        #         img = img.transpose(2, 0, 1)
+        #         #img=img.reshape(3,112,112)
+        #         yield img
 
 
     float_nodes=['_gdc_gdc_0_Conv_fusion_qin0','_gdc_gdc_0_Conv_fusion','_linearconv_Conv_qin0','_linearconv_Conv','_linearconv_Conv_reshape','_Reshape_2','output_1' ]
