@@ -81,7 +81,7 @@ if __name__ == "__main__":
     #force_input_size=16,force_output_size=16
 
     nodeqdict={
-        n:quantization_options(scheme="FLOAT",float_type="float16") 
+        n:quantization_options(scheme="FLOAT",float_type="bfloat16") 
             for n in float_nodes
     }
     #input_qdict={'input_1':quantization_options(bits=8,use_ne16=True,hwc=True,force_input_size=8,force_output_size=16)}
@@ -101,7 +101,6 @@ if __name__ == "__main__":
     #         "scheme": "FLOAT",
     #         "float_type": "float16"
     #     })
-    print(G.qshow())
     
     res = G.gen_at_model(
         settings=model_settings(l1_size=args.l1_size,
