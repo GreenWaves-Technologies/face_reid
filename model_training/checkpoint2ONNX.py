@@ -7,44 +7,6 @@ import torch.nn.functional as F
 import numpy as np
 from core import model
 
-#All these network were trained with depthwise convs
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230627_132100/070.ckpt")
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230720_152502/050.ckpt")
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230720_181909/070.ckpt")
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230721_144456/150.ckpt")
-#dataset with images cropped 112x112 with face detector
-#this is best
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230724_114153/070.ckpt")
-
-
-#Shufflenet 0.5x
-#Got back to normal Conv2d and PReLU
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230724_161807/050.ckpt")
-
-
-#Shufflenet 0.5x
-#Activation Relu6, normalization -128/128
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230725_083654/060.ckpt")
-#Not good accuracy
-
-
-#Shufflenet 0.5x
-#Activation Relu6, normalization -127.5/128
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230725_114612/080.ckpt")
-
-#################################################
-#All previous were not using correct network architecture
-#################################################
-
-#Shufflenet 0.5x
-#Activation Relu6, normalization -127.5/128
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230726_093332/060.ckpt")
-
-
-#Shufflenet 0.5x
-#Activation Relu6, normalization -128/128
-#ckpt = torch.load("model_trained/CASIA_ShuffleFaceNet_20230726_135210/050.ckpt")
-
 #Shufflenet 0.5x
 #Activation Relu6, normalization /256
 ckpt = torch.load("model/best/050.pt")

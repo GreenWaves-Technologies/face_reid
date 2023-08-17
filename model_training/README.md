@@ -4,7 +4,26 @@ A PyTorch Implementation of ShuffleFaceNet using CosFace Loss and Complexity 0.5
 
 [ShuffleFaceNet: A Lightweight Face Architecture for Efficientand Highly-Accurate Face Recognition](http://openaccess.thecvf.com/content_ICCVW_2019/papers/LSR/Martindez-Diaz_ShuffleFaceNet_A_Lightweight_Face_Architecture_for_Efficient_and_Highly-Accurate_Face_ICCVW_2019_paper.pdf)
 
-# References
+## Prerequisites
+
+Download the two training datasets with this command:
+
+```sh
+python get_datasets.py
+```
+
+It will download the CASIA WebFace and Labelled Faces in the Wild (LFW) datasets into *DATASETS* folder.
+
+## Training
+
+To run trainng you can use the `train.py` script. In the `config.py` file you can adjust the settings to your needs.
+
+## Convert to ONNX
+
+The script `checkpoint2ONNX.py` converts the trained pytorch model into ONNX format to be then imported onto NNTool and generate Gap9 code. 
+
+
+## References
 [ShuffleNet](https://github.com/kuangliu/pytorch-cifar/blob/master/models/shufflenet.py)
 
 [CosFace](https://github.com/YirongMao/softmax_variants/blob/master/model_utils.py)
