@@ -208,7 +208,7 @@ int face_id(void)
         printf("Cosine similarity between Output[0] and Output[2] > 0.19! Error!\n");
         return -1;
     }
-    if(cosine_similarity(Output[1],Output[3])<0.75){
+    if(cosine_similarity(Output[1],Output[3])>0.19){
         printf("Cosine similarity between Output[1] and Output[3] > 0.19! Error!\n");
         return -1;
     }
