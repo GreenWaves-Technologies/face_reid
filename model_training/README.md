@@ -18,6 +18,17 @@ It will download the CASIA WebFace and Labelled Faces in the Wild (LFW) datasets
 
 To run trainng you can use the `train.py` script. In the `config.py` file you can adjust the settings to your needs.
 
+## Inference
+
+Inside the inference folder you have an inference scripts which runs Face Detection, based on Blaze Face, and after FaceID Based on a Shuffle Face Net trained with this repository.
+
+To run the inference on sample images:
+
+```sh
+cd inference
+python inference_blazeface.py
+```
+
 ## Convert to ONNX
 
 The script `checkpoint2ONNX.py` converts the trained pytorch model into ONNX format to be then imported onto NNTool and generate Gap9 code. 
