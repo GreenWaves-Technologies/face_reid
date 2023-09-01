@@ -20,7 +20,7 @@ To run trainng you can use the `train.py` script. In the `config.py` file you ca
 
 ## Inference
 
-Inside the inference folder you have an inference scripts which runs Face Detection, based on Blaze Face, and after FaceID Based on a Shuffle Face Net trained with this repository.
+Inside the inference folder you have a python script which runs Face Detection, based on Blaze Face, and after FaceID based on a Shuffle Face Net trained with this repository.
 
 To run the inference on sample images:
 
