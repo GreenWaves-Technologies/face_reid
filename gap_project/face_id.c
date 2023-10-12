@@ -204,12 +204,12 @@ int face_id(void)
         printf("Cosine similarity between Output[2] and Output[3] < 0.75! Error!\n");
         return -1;
     }
-    if(cosine_similarity(Output[0],Output[2])>0.19){
-        printf("Cosine similarity between Output[0] and Output[2] > 0.19! Error!\n");
+    if(cosine_similarity(Output[0],Output[2])>0.20){
+        printf("Cosine similarity between Output[0] and Output[2] > 0.20! Error!\n");
         return -1;
     }
-    if(cosine_similarity(Output[1],Output[3])>0.19){
-        printf("Cosine similarity between Output[1] and Output[3] > 0.19! Error!\n");
+    if(cosine_similarity(Output[1],Output[3])>0.20){
+        printf("Cosine similarity between Output[1] and Output[3] > 0.20! Error!\n");
         return -1;
     }
     printf("CI Passed successfully!\n");

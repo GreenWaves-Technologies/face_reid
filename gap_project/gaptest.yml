@@ -7,7 +7,7 @@ variants:
         os: freertos
         builder: cmake
         flags:
-            - CONFIG_TEST_IMAGE="cropped_faces/francesco_1.png_face_crop.ppm"
+            - CONFIG_ONLY_FACE_ID_INFERENCE=y
             - CONFIG_CI=y
             - CONFIG_CNN_SQ8=y
             - CONFIG_CNN_POW2=n
@@ -57,7 +57,7 @@ variants:
         os: freertos
         builder: cmake
         flags:
-            - CONFIG_TEST_IMAGE="cropped_faces/francesco_1.png_face_crop.ppm"
+            - CONFIG_ONLY_FACE_ID_INFERENCE=y
             - CONFIG_CI=y
             - CONFIG_CNN_SQ8=y
             - CONFIG_CNN_POW2=n

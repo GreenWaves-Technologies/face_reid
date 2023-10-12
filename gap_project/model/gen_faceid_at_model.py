@@ -33,6 +33,8 @@ if __name__ == "__main__":
                         help="AT generated file suffix")
     parser.add_argument("--CI", default=0, type=int, required=False,
                         help="AT generated file suffix")
+    parser.add_argument("--graph_warm_construct", default=0, type=int, required=False,
+                        help="Warm Constructor in Autotiler generated code")
     
 
     args = parser.parse_args()
@@ -56,22 +58,12 @@ if __name__ == "__main__":
             CALIBRATION_IMGS.append(os.path.join(root, file))
 
     def representative_dataset():
-        #for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
-        if args.CI:
-            for image in CALIBRATION_IMGS:
-                img = (np.array(Image.open(image)).astype(np.float32))
-                img = img / 256
-                img = img.transpose(2, 0, 1)
-                #img=img.reshape(3,112,112)
-                yield img
-        else:
-            for image in tqdm(CALIBRATION_IMGS):
-                img = (np.array(Image.open(image)).astype(np.float32))
-                img = img / 256
-                img = img.transpose(2, 0, 1)
-                #img=img.reshape(3,112,112)
-                yield img
-
+        for image in tqdm(random.choices(CALIBRATION_IMGS, k=100)):
+            img = (np.array(Image.open(image)).astype(np.float32))
+            img = img / 256
+            img = img.transpose(2, 0, 1)
+            #img=img.reshape(3,112,112)
+            yield img
 
     float_nodes=['_gdc_gdc_0_Conv_fusion_qin0','_gdc_gdc_0_Conv_fusion','_linearconv_Conv_qin0','_linearconv_Conv','_linearconv_Conv_reshape','_Reshape_2','output_1' ]
     
@@ -81,7 +73,7 @@ if __name__ == "__main__":
     #force_input_size=16,force_output_size=16
 
     nodeqdict={
-        n:quantization_options(scheme="FLOAT",float_type="bfloat16") 
+        n:quantization_options(scheme="FLOAT",float_type="float16") 
             for n in float_nodes
     }
     #input_qdict={'input_1':quantization_options(bits=8,use_ne16=True,hwc=True,force_input_size=8,force_output_size=16)}
@@ -103,15 +95,17 @@ if __name__ == "__main__":
     #     })
     
     res = G.gen_at_model(
-        settings=model_settings(l1_size=args.l1_size,
-                                l2_size=args.l2_size,
-                                l3_size=args.l3_size, 
-                                tensor_directory=args.tensors_dir,
-                                l3_ram_ext_managed=False,
-                                l3_flash_ext_managed=False,
-                                graph_l1_promotion=False,
-                                gen_name_suffix=args.gen_name_suffix,
-                                model_file=args.model_file
+        settings=model_settings(l1_size                           =args.l1_size,
+                                l2_size                           =args.l2_size,
+                                l3_size                           =args.l3_size, 
+                                tensor_directory                  =args.tensors_dir,
+                                l3_ram_ext_managed                =True,
+                                l3_flash_ext_managed              =False,
+                                graph_l1_promotion                =False,
+                                gen_name_suffix                   = args.gen_name_suffix,
+                                model_file                        = args.model_file,
+                                graph_warm_construct              = args.graph_warm_construct,
+                                graph_const_exec_from_flash       = True
                                 ),
         directory=args.gen_model_path,
         at_loglevel=1
