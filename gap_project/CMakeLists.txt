@@ -72,7 +72,7 @@ add_custom_command(
                   ${MODEL_GEN_SQ8}
                   ${MODEL_GEN_FP16}
                   ${MODEL_GEN_NE16}
-                  ${MODEL_GEN}
+		  ${MODEL_GEN_POW2}
                   ${FACEID_AT_MODEL_DIR}/${FACEID_AT_MODEL_NAME} 
                   $ENV{TILER_LIB}
 )
