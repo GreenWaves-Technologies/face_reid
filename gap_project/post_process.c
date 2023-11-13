@@ -96,7 +96,7 @@ void post_process(float* scores,float * boxes,bbox_float_t* bboxes,int img_w,int
     float min_x;
     float min_y;
     int det_bb=0;
-
+	
 	//This peace of code was used to generate anchors for fixed point post processing
 	/*for(int i=0;i<896;i++){
     	for(int a=0;a<4;a++){
@@ -117,15 +117,15 @@ void post_process(float* scores,float * boxes,bbox_float_t* bboxes,int img_w,int
 
 			center_x = boxes[(i*16)+box_offset_x] /  (float)X_SCALE * anchors[(i*4)+2] + anchors[(i*4)+0];
 	    	center_y = boxes[(i*16)+box_offset_y] /  (float)Y_SCALE * anchors[(i*4)+3] + anchors[(i*4)+1];
-			printf("FP Scores: %f %f %f\n",scores[i],center_x,center_y);
+			//printf("FP Scores: %f %f %f\n",scores[i],center_x,center_y);
 	    	bbh = boxes[(i*16)+box_offset_height] /  (float) H_SCALE * anchors[(i*4)+3];
 	    	bbw = boxes[(i*16)+box_offset_width]  /  (float) W_SCALE * anchors[(i*4)+2];
-	    	printf("bbh bbw: %f %f\n",bbh,bbw);
+	    	//printf("bbh bbw: %f %f\n",bbh,bbw);
 	    	bboxes[det_bb].h =((boxes[(i*16)+box_offset_height] /  (float) H_SCALE * anchors[(i*4)+3])*img_h);
 	    	bboxes[det_bb].w =((boxes[(i*16)+box_offset_width]  /  (float) W_SCALE * anchors[(i*4)+2])*img_w);
 	    	bboxes[det_bb].xmin = ((center_x - 0.5 * bbw)*img_w);
 	    	bboxes[det_bb].ymin = ((center_y - 0.5 * bbh)*img_h);
-	    	printf("%d %d %d %d\n",bboxes[det_bb].xmin,bboxes[det_bb].ymin,bboxes[det_bb].w,bboxes[det_bb].h);
+	    	//printf("%f %f %f %f\n",bboxes[det_bb].xmin,bboxes[det_bb].ymin,bboxes[det_bb].w,bboxes[det_bb].h);
 	    	//Decoding Keypoints
 	    	bboxes[det_bb].k1_x=(boxes[(i*16)+keypoints_coord_offset+0+keypoint_offset_x] /  X_SCALE * anchors[(i*4)+2] + anchors[(i*4)+0])*img_w;
 	    	bboxes[det_bb].k1_y=(boxes[(i*16)+keypoints_coord_offset+0+keypoint_offset_y] /  Y_SCALE * anchors[(i*4)+3] + anchors[(i*4)+1])*img_h;

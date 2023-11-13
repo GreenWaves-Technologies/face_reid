@@ -151,7 +151,55 @@ float cosine_similarity(F16 *a, F16 *b)
     return dot_p / (norm_a * norm_b);
 }
 
+void bilinear_resize_hwc(KerResize_ArgT* Arg)
+{
+        uint8_t * __restrict__ In  = (uint8_t * __restrict__) Arg->In;
+        unsigned int Win               = Arg->Win;
+        unsigned int Hin               = Arg->Hin;
+        uint8_t * __restrict__ Out = (uint8_t * __restrict__) Arg->Out;
+        unsigned int Wout              = Arg->Wout;
+        unsigned int HTileIn           = Arg->HTileIn;
+        unsigned int HTileOut          = Arg->HTileOut;
+        unsigned int HTileInIndex      = Arg->HTileInIndex;
+        unsigned int HTileOutIndex     = Arg->HTileOutIndex;
+        unsigned int Channels          = 3;
 
+        unsigned int CoreId = 0;//gap_coreid();                                       
+        unsigned int ChunkCell = Wout;//ChunkSize(Wout);                                 
+        //unsigned int First = CoreId*ChunkCell, Last  = Min(Wout, First+ChunkCell);
+        unsigned int First = 0, Last = Wout;
+                                                                                  
+        unsigned int WStep = Arg->WStep;                                          
+        unsigned int HStep = Arg->HStep;                                          
+                                                                                  
+        unsigned int x, y, c;                                                     
+        unsigned int hCoeff = HStep*HTileOutIndex;                                
+        for (y = 0 ; y < HTileOut && First < Last ; y++) {                        
+                unsigned int offsetYfloor = (hCoeff >> 16) - HTileInIndex;        
+                unsigned int offsetYceil  = gap_min(offsetYfloor+1, HTileIn);     
+                unsigned int hc2 = (hCoeff >> 9) & 127;                           
+                unsigned int hc1 = 128 - hc2;                                     
+                unsigned int wCoeff = First*WStep;                                
+                                                                                  
+                for (x = First ; x < Last ; x++) {                                
+                        unsigned int offsetXfloor = (wCoeff >> 16);               
+                        unsigned int offsetXceil =  gap_min(offsetXfloor+1, Win); 
+                        unsigned int wc2 = (wCoeff >> 9) & 127;                   
+                        unsigned int wc1 = 128 - wc2;                             
+                        for (c = 0 ; c < Channels ; c++) {                        
+                                unsigned int P1 = In[(offsetYfloor * Win + offsetXfloor) * Channels + c];
+                                unsigned int P2 = In[(offsetYceil  * Win + offsetXfloor) * Channels + c];
+                                unsigned int P3 = In[(offsetYfloor * Win + offsetXceil)  * Channels + c];
+                                unsigned int P4 = In[(offsetYceil  * Win + offsetXceil)  * Channels + c];
+
+                                Out[(y*Wout + x) * Channels + c] =
+                                        ((P1*hc1 + P2*hc2)*wc1 + (P3*hc1 + P4*hc2)*wc2) >> 14;
+                        }
+                        wCoeff += WStep;
+                }
+                hCoeff += HStep;
+        }
+}
 
 typedef struct ArgFACE_DETCluster
 {
@@ -169,6 +217,7 @@ static void RunFaceDetection(ArgFACE_DETCluster_T*Arg)
 	gap_cl_resethwtimer();
 #endif
   printf("Running on cluster\n");
+
   face_detCNN(Arg->in,Arg->boxes_out,Arg->scores_out,&(Arg->boxes_out[512*16]),&(Arg->scores_out[512]),NULL);
   printf("Runner completed\n");
 
@@ -195,7 +244,6 @@ int face_id(void)
 
     F16* boxes_out=pi_l2_malloc(sizeof(F16)*(16*896));
 	F16* scores_out=pi_l2_malloc(sizeof(F16)*(1*896));
-	
 
     pi_device_t *ram = &DefaultRam;
     struct pi_default_ram_conf conf_ram;
@@ -245,7 +293,7 @@ int face_id(void)
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
     pi_cluster_conf_init(&cl_conf);
-    cl_conf.cc_stack_size = STACK_SIZE;
+    cl_conf.cc_stack_size = 4096;
     struct pi_cluster_task task;
     pi_open_from_conf(&cluster_dev, (void *)&cl_conf);
     if (pi_cluster_open(&cluster_dev))
@@ -292,30 +340,37 @@ int face_id(void)
             printf("Failed to load image %s or dimension mismatch \n");
             return -1;
         }
-        // uint8_t * ImageIn=pi_l2_malloc(256*256*3);
-        // // F16 * ImageIn_f=pi_l2_malloc(128*128*3*2);
-        // if (ReadImageFromFile("../francesco_cropped_r256.ppm", 256, 256, 3, ImageIn, 256 * 256 * 3 *sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
+        // uint8_t * ImageIn=pi_l2_malloc(128*128*3);
+        // F16 * ImageIn_f=pi_l2_malloc(128*128*3*2);
+        // if (ReadImageFromFile("../input_rgb.ppm", 128, 128, 3, ImageIn, 128 * 128 * 3 *sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
         // {
         //     printf("Failed to load image %s or dimension mismatch \n");
-        //     return -1;
+        //     return -1;   
         // }
         
         // #define AT_INPUT_HEIGHT 128
         // #define AT_INPUT_WIDTH 128
         // #define AT_INPUT_COLORS 3
 
-        // // HWC to CHW + casting and normalizing to F16
+        // //HWC to CHW + casting and normalizing to F16
         // for (int h=0; h<AT_INPUT_HEIGHT; h++) {
         //     for (int w=0; w<AT_INPUT_WIDTH; w++) {
         //         for (int c=0; c<AT_INPUT_COLORS; c++) {
         //             //ImageIn_f[c*AT_INPUT_WIDTH*AT_INPUT_HEIGHT+h*AT_INPUT_WIDTH+w] = (((F16) ImageIn[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c]) / 128) - 1.0f;
-        //             ImageIn_f[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c] = (((F16) ImageIn[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c]) / 128) - 1.0f;
+                    
+        //             ImageIn_f[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c] = (((F16) ImageIn[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c]) );
         //         }
         //     }
         // }
 
         //////// Calling ISP
         ISP_Filtering(&cluster_dev,ImageIn_ram, ImageOut_ram);
+        //pi_ram_write(ram, ImageOut_ram, ImageIn_f, 128*128*3*2);
+        // pi_ram_copy(ram, ImageOut_ram, (void *) ImageIn, 128*128*3, 0);
+        // pi_l2_free(ImageIn_f,128*128*3*2);
+        // pi_l2_free(ImageIn,128*128*3);
+        
+        //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, ImageOut_ram, RGB888_IO);
 
         //////// Calling Face Detection
         {
@@ -335,7 +390,7 @@ int face_id(void)
         facedet_arg.scores_out=scores_out;
 
         pi_cluster_task(&task, (void (*)(void *))&RunFaceDetection, &facedet_arg);
-        //pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
+        pi_cluster_task_stacks(&task, NULL, 1024);
         pi_cluster_send_task_to_cl(&cluster_dev,&task);
         face_detCNN_Destruct(1, 0, 1, 0, 0, 0);
 
@@ -349,17 +404,13 @@ int face_id(void)
         }
         printf("\n");
         for(int i=0;i<896;i++){
-            // printf("Scores[%d] %f\n", i, scores_out[i]);
-            if(i<512)
-                scores[i] = 1/(1+expf(-(((float)scores_out[i]))));
-            else
-                scores[i] = 1/(1+expf(-(((float)scores_out[i]))));
+            //printf("Scores[%d] %f\n", i, scores_out[i]);
+            scores[i] = 1/(1+expf(-(((float)scores_out[i]))));
+            
 
             for(int j=0;j<16;j++){
-                if(i<512)
-                    boxes[(i*16)+j] = ((float)boxes_out[(i*16)+j]);
-                else
-                    boxes[(i*16)+j] = ((float)boxes_out[(i*16)+j]);
+                //printf("boxes[%d] %f\n", i, boxes_out[i]);
+                boxes[(i*16)+j] = ((float)boxes_out[(i*16)+j]);
             }
         }
 
@@ -368,28 +419,79 @@ int face_id(void)
         non_max_suppress(bboxes);
         printBboxes_forPython(bboxes);
 
+        pi_l2_free(scores,896*sizeof(float));
+        pi_l2_free(boxes,16*896*sizeof(float));
+
+
+        // This is for debugging
         for(int i=0;i<MAX_BB_OUT;i++){
             if (bboxes[i].alive)
                 printf("%f %f %f %f %f\n",bboxes[i].score, bboxes[i].xmin,bboxes[i].ymin,bboxes[i].w,bboxes[i].h);
         }
 
-        pi_l2_free(scores,896*sizeof(float));
-        pi_l2_free(boxes,16*896*sizeof(float));
+
+        for(int i=0;i<MAX_BB_OUT;i++){
+            if (bboxes[i].alive){
+                // Allocate space to load Face Bounding Box
+                uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
+                uint8_t * face_out = pi_l2_malloc(112*112*3);
+                if(face_in==NULL || face_out==NULL){
+                    printf("Error allocating faces inpu! \n");
+                    return -1;
+                }
+                
+                // Load from L3
+                // pi_ram_read_2d(ram, ImageOut_ram + (((int)bboxes[i].ymin*(int)bboxes[i].w + (int)bboxes[i].xmin)*3), face_in, 
+                // (int)bboxes[i].w*(int)bboxes[i].h*3, (480-(int)bboxes[i].w)*3, (int)bboxes[i].w*3);
+
+                // WriteImageToFile("../face_id_resize_rgb.ppm", (int)bboxes[i].w,(int)bboxes[i].h,3, face_in, RGB888_IO);
+                
+                pi_ram_read_2d(ram, (uint32_t) ImageOut_ram + (((int)bboxes[i].ymin*480 + (int)bboxes[i].xmin)*3), (void*)face_in, 
+                (int)bboxes[i].w*(int)bboxes[i].h*3, 480*3,(int)bboxes[i].w*3);
+
+                //WriteImageToFile("../face_id_resize_rgb.ppm", (int)bboxes[i].w,(int)bboxes[i].h,3, face_in, RGB888_IO);
+
+
+                //Resize for face ID (112*112*3)
+                KerResize_ArgT ResizeArg;
+                ResizeArg.In             = face_in;
+                ResizeArg.Win            = bboxes[i].w;
+                ResizeArg.HTileIn        = bboxes[i].h;
+                ResizeArg.Out            = face_out;
+                ResizeArg.Wout           = 112;
+                ResizeArg.HTileOut       = 112;
+                ResizeArg.WStep          = (((int)bboxes[i].w-1)<<16)/(112-1);
+                ResizeArg.HStep          = (((int)bboxes[i].h-1)<<16)/(112-1);
+                ResizeArg.HTileInIndex   = 0;
+                ResizeArg.HTileOutIndex  = 0;
+                ResizeArg.Channels       = 3;
+                bilinear_resize_hwc(&ResizeArg);
+                //WriteImageToFile("../face_id_input_rgb.ppm", 112,112,3, face_out, RGB888_IO);
+                
+                fi_cluster_arg.input = face_out;
+                fi_cluster_arg.output = Output[i];
+
+                face_idCNN_Construct(1, 0, 1, 0, 0, 0);
+                printf("Call cluster\n");
+                pi_cluster_task(&task, (void (*)(void *))cluster, &fi_cluster_arg);
+                //pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
+
+                pi_cluster_send_task_to_cl(&cluster_dev, &task);
+                face_idCNN_Destruct(1, 0, 1, 0, 0);
+            }
+        }
+
+        printf("Cosine similarity results:\n");
+        printf("Cosine similarity francesco1 - francesco2: %f\n",cosine_similarity(Output[0],Output[0]));
+    
+
+        
 
 //#ifdef EQ_HIST
 //        histogram_eq_HWC_fc(Input, FACE_ID_W, FACE_ID_H);
 //#endif
 
-        // fi_cluster_arg.input = ImageOut_ram;
-        // fi_cluster_arg.output = Output[i];
 
-        // face_idCNN_Construct(1, 0, 1, 0, 0, 0);
-        // printf("Call cluster\n");
-        // pi_cluster_task(&task, (void (*)(void *))cluster, &fi_cluster_arg);
-        // //pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
-
-        // pi_cluster_send_task_to_cl(&cluster_dev, &task);
-        // face_idCNN_Destruct(1, 0, 1, 0, 0);
     }
 
 

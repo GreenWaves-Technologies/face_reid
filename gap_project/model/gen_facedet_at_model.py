@@ -39,40 +39,40 @@ if __name__ == "__main__":
     
     #Load Graph, adjust and fusions
     G = NNGraph.load_graph(args.model_path)
-    # G.adjust_order()
-    # G.fusions('scaled_match_group')
-    # G.fusions('expression_matcher')
-    
-
     G.name='face_det'
     
-    G.insert_resizer(G[0],(480,480))
-    stats = G.collect_statistics(RandomIter.fake(G))
-    
-    G.quantize(
-        stats,
-        graph_options=quantization_options( hwc=True, scheme="FLOAT", float_type="float16"),
-        node_options={'input_1': {'qtype_ind': QType.from_min_max_sq(-1, 1, dtype=np.uint8)}}
-        # node_options={
-        #     n: quantization_options(scheme="SQ8", sq_bits=8) for n in ["input_1"]
-        # }
-    )
-
     G.adjust_order()
-    G.add_dimensions()
     G.fusions('scaled_match_group')
     G.fusions('expression_matcher')
     G.remove_nodes(G["CONCAT_0_163"], leave=False, up=False)
     G.remove_nodes(G["CONCAT_0_162"], leave=False, up=False)
-    #G.node('input_1').fixed_order = True
     G.node('output_1').fixed_order = True
     G.node('output_2').fixed_order = True
     G.node('output_3').fixed_order = True
     G.node('output_4').fixed_order = True
 
- 
+    
+    stats = G.collect_statistics(RandomIter.fake(G))
+    
+    G.quantize(
+        stats,
+        graph_options=quantization_options( hwc=True, scheme="FLOAT", float_type="float16"),
+        node_options={'input_1': {'qtype_ind': QType.from_min_max_sq(-1, 0.992, dtype=np.uint8)}}
+        # node_options={
+        #     n: quantization_options(scheme="SQ8", sq_bits=8) for n in ["input_1"]
+        # }
+    )
+
     print(G.show())
-    print(G.qshow())
+    # G.adjust_order()
+    # G.add_dimensions()
+    # G.fusions('scaled_match_group')
+    # G.fusions('expression_matcher')
+    G.insert_resizer(G[0],(480,480),spatial_axes=(0,1),resize_op="bilinear")
+
+
+    print(G.show())
+#    print(G.qshow())
     """
     #self.G.remove_nodes(node_from, node_to, up=args.up, leave=args.leave, no_check=args.no_check)
     #print(G.show())
@@ -120,8 +120,9 @@ if __name__ == "__main__":
                                 graph_warm_construct              = args.graph_warm_construct,
                                 default_input_exec_location       = 'AT_MEM_L3_DEFAULTRAM',
                                 default_input_home_location       = 'AT_MEM_L3_DEFAULTRAM',
-                                graph_const_exec_from_flash       = True,
-                                graph_trace_exec=False # Set to True for debugging 
+                                graph_const_exec_from_flash       = False
+                                # graph_trace_exec=False, # Set to True for debugging 
+                                # graph_checksum=True # Set to True for debugging 
                                 ),
         directory=args.gen_model_path,
         at_loglevel=1

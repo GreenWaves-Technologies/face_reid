@@ -43,9 +43,9 @@ int main(int argc, char **argv)
 	// Call Resize generator
 	unsigned int W = 480, H = 480;
 	// Simple_DeMosaic_Resize("demosaic_and_resize_image", W,H,1,1,bayer_BGGR);
-
+	
 	GenerateDeMosaic_OutHWC("demosaic_image", W, H, sizeof(char),1,1,bayer_BGGR);
-	//GenerateDeMosaic_OutCHW("demosaic_image", W, H,1,1,bayer_BGGR);
+	//GenerateDeMosaic_OutCHW("demosaic_image", W, H, sizeof(char),1,1,bayer_BGGR);
 	
 	// Now that we are done with model parsing we generate the code
 	GenerateTilingCode();
