@@ -318,7 +318,7 @@ int face_id(void)
 #endif
     printf("Voltage: %dmV\n", pi_pmu_voltage_get(PI_PMU_VOLTAGE_DOMAIN_CHIP));
 
-    printf("Constructor\n");
+    printf("Constructor Face ID\n");
     ////face_idCNN_Construct(int DoL1Alloc, int DoL2Alloc, int DoL2DynAlloc, int DoL3Init, int DoL3Alloc, int DoPromotion)
     {
         int ConstructorErr = face_idCNN_Construct(0, 1, 0, 1, 1, 1);
@@ -328,7 +328,7 @@ int face_id(void)
             pmsis_exit(-6);
         }
     }
-    printf("Constructor\n");
+    printf("Constructor Face Detection\n");
     //// face_detCNN_Construct(int DoL1Alloc, int DoL2Alloc, int DoL2DynAlloc, int DoL3Init, int DoL3Alloc, int DoL3DynAlloc, int DoPromotion)
     {
         int ConstructorErr = face_detCNN_Construct(0, 1, 0, 1, 1, 1, 1);
@@ -347,35 +347,9 @@ int face_id(void)
             printf("Failed to load image %s or dimension mismatch \n");
             return -1;
         }
-        // uint8_t * ImageIn=pi_l2_malloc(128*128*3);
-        // F16 * ImageIn_f=pi_l2_malloc(128*128*3*2);
-        // if (ReadImageFromFile("../input_rgb.ppm", 128, 128, 3, ImageIn, 128 * 128 * 3 *sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
-        // {
-        //     printf("Failed to load image %s or dimension mismatch \n");
-        //     return -1;   
-        // }
-        
-        // #define AT_INPUT_HEIGHT 128
-        // #define AT_INPUT_WIDTH 128
-        // #define AT_INPUT_COLORS 3
-
-        // //HWC to CHW + casting and normalizing to F16
-        // for (int h=0; h<AT_INPUT_HEIGHT; h++) {
-        //     for (int w=0; w<AT_INPUT_WIDTH; w++) {
-        //         for (int c=0; c<AT_INPUT_COLORS; c++) {
-        //             //ImageIn_f[c*AT_INPUT_WIDTH*AT_INPUT_HEIGHT+h*AT_INPUT_WIDTH+w] = (((F16) ImageIn[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c]) / 128) - 1.0f;
-                    
-        //             ImageIn_f[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c] = (((F16) ImageIn[h*AT_INPUT_WIDTH*AT_INPUT_COLORS+w*AT_INPUT_COLORS+c]) );
-        //         }
-        //     }
-        // }
 
         //////// Calling ISP
         ISP_Filtering(&cluster_dev,ImageIn_ram, ImageOut_ram);
-        //pi_ram_write(ram, ImageOut_ram, ImageIn_f, 128*128*3*2);
-        // pi_ram_copy(ram, ImageOut_ram, (void *) ImageIn, 128*128*3, 0);
-        // pi_l2_free(ImageIn_f,128*128*3*2);
-        // pi_l2_free(ImageIn,128*128*3);
         
         //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, ImageOut_ram, RGB888_IO);
 
@@ -433,15 +407,16 @@ int face_id(void)
         // This is for debugging
         for(int i=0;i<MAX_BB_OUT;i++){
             if (bboxes[i].alive)
-                printf("%f %f %f %f %f\n",bboxes[i].score, bboxes[i].xmin,bboxes[i].ymin,bboxes[i].w,bboxes[i].h);
+                printf("Detected Face %d score: %f\n",i,bboxes[i].score);
+                //printf("score: %f xmin: %f ymin: %f w:%f h:%f\n",i,bboxes[i].score, bboxes[i].xmin,bboxes[i].ymin,bboxes[i].w,bboxes[i].h);
         }
 
-
+        // For each found face run face ID on it
         for(int i=0;i<MAX_BB_OUT;i++){
             if (bboxes[i].alive){
                 // Allocate space to load Face Bounding Box
-                uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
                 uint8_t * face_out = pi_l2_malloc(112*112*3);
+                uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
                 if(face_in==NULL || face_out==NULL){
                     printf("Error allocating faces inpu! \n");
                     return -1;
@@ -451,7 +426,6 @@ int face_id(void)
                 (int)bboxes[i].w*(int)bboxes[i].h*3, 480*3,(int)bboxes[i].w*3);
 
                 //WriteImageToFile("../face_id_resize_rgb.ppm", (int)bboxes[i].w,(int)bboxes[i].h,3, face_in, RGB888_IO);
-
 
                 //Resize for face ID (112*112*3)
                 KerResize_ArgT ResizeArg;
@@ -468,6 +442,8 @@ int face_id(void)
                 ResizeArg.Channels       = 3;
                 bilinear_resize_hwc(&ResizeArg);
                 
+                pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
+
                 //WriteImageToFile("../face_id_input_rgb.ppm", 112,112,3, face_out, RGB888_IO);
                 
                 histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
@@ -482,23 +458,27 @@ int face_id(void)
 
                 pi_cluster_send_task_to_cl(&cluster_dev, &task);
                 face_idCNN_Destruct(1, 0, 1, 0, 0);
+                pi_l2_free(face_out,112*112*3);
             }
         }
 
+        float fra1_fra2,fra1_manu1;
+        fra1_fra2  = cosine_similarity(Output[0],francesco);
+        fra1_manu1 = cosine_similarity(Output[0],manuele);
         printf("Cosine similarity results:\n");
-        printf("Cosine similarity francesco1 - francesco2: %f\n",cosine_similarity(Output[0],francesco));
-        printf("Cosine similarity francesco1 - manuele: %f\n"   ,cosine_similarity(Output[0],manuele));
-        
-    
-//#ifdef EQ_HIST
-
-//#endif
-
-
+        printf("Cosine similarity francesco1 - francesco2: %f\n",fra1_fra2);
+        printf("Cosine similarity francesco1 - manuele: %f\n"   ,fra1_manu1);
+        if(fra1_fra2<0.58 && fra1_manu1 > 0.13){
+            printf("CI ERROR, Cosine Similarity degradation\n");
+            printf("Cosine similarity francesco1 - francesco2 should be >=0.58 and actually is %f\n",fra1_fra2);
+            printf("Cosine similarity francesco1 - manuele should be <0.13 and actually is %f\n",fra1_manu1);
+            return -1;
+        }
     }
-
+    
+    //Nothing is left to do thus deallocate L2 static and L3
     face_idCNN_Destruct(0, 1, 0, 1, 1);
-    face_detCNN_Destruct(0, 1, 0, 1, 1,1);
+    face_detCNN_Destruct(0, 1, 0, 1, 1, 1);
 
 #ifdef PERF
     {
@@ -537,17 +517,6 @@ int face_id(void)
         printf("\n");
     }
 #endif
-
-    // printf("Cosine similarity results:\n");
-    // printf("Cosine similarity francesco1 - francesco2: %f\n", cosine_similarity(Output[0], Output[1]));
-    // printf("Cosine similarity manuele1 - manuele2: %f\n", cosine_similarity(Output[2], Output[3]));
-    // printf("Cosine similarity francesco1 - manuele1: %f\n", cosine_similarity(Output[0], Output[2]));
-    // printf("Cosine similarity francesco2 - manuele2: %f\n", cosine_similarity(Output[1], Output[3]));
-
-    // Decomment to print output tensor
-    // printf("Output:\n");
-    // for(int i=0;i<128;i++)printf("%f ",Output[0][i]);
-    // printf("\n\n");
 
     printf("Ended\n");
     return 0;
