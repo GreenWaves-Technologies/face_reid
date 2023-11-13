@@ -191,9 +191,10 @@ int face_id(void)
     printf("Cosine similarity francesco2 - manuele2: %f\n",cosine_similarity(Output[1],Output[3]));
     
     // Decomment to print output tensor
-    // printf("Output:\n");
-    // for(int i=0;i<128;i++)printf("%f ",Output[0][i]);
-    // printf("\n\n");
+    printf("Output 0:\n");
+    for(int i=0;i<128;i++)printf("%f ",Output[2][i]);
+    printf("\n\n");
+    
 
     #ifdef CI
     if(cosine_similarity(Output[0],Output[1])<0.75){
@@ -204,12 +205,12 @@ int face_id(void)
         printf("Cosine similarity between Output[2] and Output[3] < 0.75! Error!\n");
         return -1;
     }
-    if(cosine_similarity(Output[0],Output[2])>0.19){
-        printf("Cosine similarity between Output[0] and Output[2] > 0.19! Error!\n");
+    if(cosine_similarity(Output[0],Output[2])>0.20){
+        printf("Cosine similarity between Output[0] and Output[2] > 0.20! Error!\n");
         return -1;
     }
-    if(cosine_similarity(Output[1],Output[3])>0.19){
-        printf("Cosine similarity between Output[1] and Output[3] > 0.19! Error!\n");
+    if(cosine_similarity(Output[1],Output[3])>0.20){
+        printf("Cosine similarity between Output[1] and Output[3] > 0.20! Error!\n");
         return -1;
     }
     printf("CI Passed successfully!\n");

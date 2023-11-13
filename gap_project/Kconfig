@@ -27,14 +27,22 @@
 
 menu "Face ID menu"
 
-    comment "Options"
+#comment "Options"
 
-    config TEST_IMAGE
-        #depends on ENABLE_NNTOOL
-        string "Face ID test image"
-        default "cropped_faces/francesco_1.png_face_crop.ppm"
-        help
-            Specify test image url.
+    choice MODE
+        prompt "Application Mode"
+
+            config ONLY_FACE_ID_INFERENCE
+                bool "Inference Mode only face id: launch the model on specific input images"
+                default y
+
+            config FACE_DETECTION_ID_INFERENCE
+                bool "Inference Mode with face detection + face id: launch the 2 models on specific input images"
+            
+            config DEMO
+                bool "Demo Mode: use the camera"
+
+    endchoice
 
 endmenu
 

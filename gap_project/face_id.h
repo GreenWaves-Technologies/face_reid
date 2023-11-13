@@ -15,4 +15,6 @@ extern AT_DEFAULTFLASH_EXT_ADDR_TYPE face_id_L3_Flash;
 
 #define FACE_ID_SIZE (FACE_ID_W*FACE_ID_H*FACE_ID_C)
 
+extern AT_DEFAULTRAM_T DefaultRam;
+
 #endif
