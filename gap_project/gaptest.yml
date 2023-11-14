@@ -48,7 +48,6 @@ variants:
             - CONFIG_FREERTOS_ENABLE_FLOAT_EXPONENT_PRINTF=y
             - CONFIG_LIB_GAP_LIB=y
             - CONFIG_LIB_GAP_LIB_IMG_IO=y
-
     board_only_face_id:
         chip: gap9
         board: gap9evk
@@ -97,7 +96,6 @@ variants:
             - CONFIG_FREERTOS_ENABLE_FLOAT_EXPONENT_PRINTF=y
             - CONFIG_LIB_GAP_LIB=y
             - CONFIG_LIB_GAP_LIB_IMG_IO=y
-
    gvsoc_face_det_id:
         chip: gap9
         board: gap9evk
@@ -146,7 +144,6 @@ variants:
             - CONFIG_FREERTOS_ENABLE_FLOAT_EXPONENT_PRINTF=y
             - CONFIG_LIB_GAP_LIB=y
             - CONFIG_LIB_GAP_LIB_IMG_IO=y
-
     board_face_det_id:
         chip: gap9
         board: gap9evk
