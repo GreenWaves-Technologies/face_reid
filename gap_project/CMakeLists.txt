@@ -21,11 +21,18 @@ if(CONFIG_ONLY_FACE_ID_INFERENCE)
 								  -DINPUT_IMAGE_4=${CMAKE_CURRENT_SOURCE_DIR}/cropped_faces/manuele_2.png_face_crop.ppm)
 
 elseif(CONFIG_FACE_DETECTION_ID_INFERENCE)
-  set(MAIN                face_det_id.c)
+  set(MAIN  face_det_id.c)
   set(GRAPH_WARM 3)
   list(APPEND TARGET_PREPROCESSOR -DINPUT_IMAGE_1=${CMAKE_CURRENT_SOURCE_DIR}/vga_samples/test_image_raw_bayer480x480_2.pgm)
   list(APPEND TARGET_SRCS post_process.c)
   list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
+
+elseif(CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE)
+	set(MAIN  face_det_id_gen_signature.c)
+	set(GRAPH_WARM 3)
+	list(APPEND TARGET_PREPROCESSOR -DINPUT_IMAGE_1=${CMAKE_CURRENT_SOURCE_DIR}/vga_samples/test_image_raw_bayer480x480_2.pgm)
+	list(APPEND TARGET_SRCS post_process.c)
+	list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
 
 #elseif(CONFIG_DEMO)
 #  set(MAIN                demo.c)
@@ -125,7 +132,7 @@ readfs_add_files(FILES ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}_L3_Flash_Con
 
 ### FACE Detection Model
 
-if(CONFIG_FACE_DETECTION_ID_INFERENCE)
+if(CONFIG_FACE_DETECTION_ID_INFERENCE OR CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE)
 
   set(BUILD_MODEL_FACEDET BUILD_MODEL_FACEDET)
 

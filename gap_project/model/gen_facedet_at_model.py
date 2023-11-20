@@ -57,15 +57,12 @@ if __name__ == "__main__":
         stats,
         graph_options=quantization_options( hwc=True, scheme="FLOAT", float_type="float16"),
         node_options={'input_1': {'qtype_ind': QType.from_min_max_sq(-1, 0.991, dtype=np.uint8)}}
-        # node_options={
-        #     n: quantization_options(scheme="SQ8", sq_bits=8) for n in ["input_1"]
-        # }
     )
 
     G.insert_resizer(G[0],(480,480),spatial_axes=(0,1),resize_op="bilinear")
 
     #print(G.show())
-#    print(G.qshow())
+    #print(G.qshow())
     """
     #self.G.remove_nodes(node_from, node_to, up=args.up, leave=args.leave, no_check=args.no_check)
     #print(G.show())

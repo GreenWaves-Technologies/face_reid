@@ -339,8 +339,8 @@ int face_id(void)
         }
     }
 
-    // for (int i = 0; i < IMG_TEST_N; i++)
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < IMG_TEST_N; i++)
+    //for (int i = 0; i < 1; i++)
     {
         if (ReadImageFromFileL3(ram, image_list[i], IMG_IN_W, IMG_IN_H, 1, ImageIn_ram, IMG_IN_W * IMG_IN_H * sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
         {

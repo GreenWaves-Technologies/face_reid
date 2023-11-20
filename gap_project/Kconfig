@@ -39,6 +39,9 @@ menu "Face ID menu"
             config FACE_DETECTION_ID_INFERENCE
                 bool "Inference Mode with face detection + face id: launch the 2 models on specific input images"
             
+            config FACE_DETECTION_ID_GEN_SIGNATURE
+                bool "Generate Signature of Face with Camera"
+            
             config DEMO
                 bool "Demo Mode: use the camera"
 
