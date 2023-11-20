@@ -21,7 +21,8 @@
 #include "he.h"
 #include "post_process.h"
 
-#define IMG_TEST_N 4
+#define GEN_SIGNATURE_IMAGES 5
+
 
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
@@ -223,25 +224,21 @@ static void RunFaceDetection(ArgFACE_DETCluster_T*Arg)
 
 }
 
-F16 francesco[]={
-    -0.064453,-0.315918,-0.023193,-0.056152,-0.159424,0.157349,-0.430908,-0.434082,-0.623047,-0.024414,0.027344,-0.427734,0.366943,0.417969,0.389404,0.343506,0.059082,0.034180,-0.032227,-0.013428,0.442871,-0.411133,0.275146,0.109375,-0.414551,0.680664,0.174072,0.284424,0.015625,-0.014648,-0.089478,0.068604,0.036133,0.314453,0.335449,0.105957,0.094727,-0.596680,0.027466,-0.253906,0.452148,-0.212158,0.260742,0.045898,0.128418,-0.570312,0.295410,0.145508,-0.385742,-0.376465,0.429199,-0.443359,0.225952,-0.014252,0.474609,0.188965,-0.264160,0.042664,-0.229736,-0.275391,-0.041016,0.483154,-0.451172,0.286133,0.420410,-0.520020,-0.191040,-0.508789,0.019531,-0.068176,0.150391,-0.303711,0.161133,-0.009277,-0.069336,0.115234,-0.344238,0.852539,0.252197,0.057251,-0.225342,0.505859,0.058838,0.107910,0.048828,0.219482,0.172852,0.414551,0.302002,-0.085083,0.371826,0.066528,-0.038330,-0.900879,-0.708008,-0.300537,-0.127930,-0.169067,-0.331787,0.059448,-0.235718,0.709961,0.254150,0.104492,-0.007080,0.341309,0.305664,0.433350,0.481445,-0.131836,-0.647461,-0.175781,-0.007568,-0.079346,0.139160,-0.532227,-0.546875,-0.235840,-0.083008,0.242065,-0.026611,-0.083740,-0.153809,0.432861,-0.742676,-0.739746,-0.083984,-0.342041
-};
-
-F16 manuele[]={
-    0.223633,0.190430,0.102295,-0.967773,0.054565,-0.282227,0.463623,0.074097,-0.275391,-0.165527,0.610352,-0.642090,0.223877,-0.642090,0.327393,0.182861,-0.477539,-0.783203,-0.030029,0.044189,0.359619,-0.120361,-0.122620,0.071289,-0.959961,-0.506836,0.227295,0.289307,-0.396484,-0.292969,-0.476807,0.478516,-1.039062,1.046875,0.233765,0.377197,0.381348,-0.026611,-0.537598,0.073242,0.334473,0.044189,-0.565430,0.046387,-0.401855,0.168213,-0.061035,-0.453125,0.306641,-0.235962,-0.292969,-0.233765,-0.197388,0.054169,-0.013580,0.046875,0.591309,-0.353027,0.129883,-0.285645,-0.604004,0.372070,-0.381836,0.703613,0.044922,-0.456299,0.223755,-0.123535,0.863770,0.344238,-0.201904,-0.536621,0.565918,-0.539551,-0.174316,-0.095093,-0.812988,1.018555,-0.229858,-0.033569,-0.374268,0.348633,0.215576,0.427246,0.320068,-0.028564,-0.671387,0.258301,-0.122925,-0.496094,-0.181152,-0.128296,0.156494,-0.312256,0.367188,-0.616211,0.147705,0.169434,-0.547363,-0.278320,-0.232300,0.078613,0.534668,0.311035,-0.160889,-0.186523,-0.230957,-0.441650,0.577148,0.406494,-0.742188,0.086914,0.167480,0.262451,-0.063110,0.537109,0.532227,0.061707,-0.401123,-0.469971,-0.411621,0.012207,0.055664,-1.171875,-0.366699,0.018555,0.289062,-0.769531
-};
 int face_id(void)
 {
     printf("Entering main controller\n");
     uint8_t *ImageIn;
     uint8_t *ImageOut_ram;
+    pi_device_t* camera;
+    pi_evt_t cam_task;
+    char im_name[100];
 
     face_id_clusterArg fi_cluster_arg;
 
-    // Create space for IMG_TEST_N images to test face reid
-    F16** Output = (F16**)pi_l2_malloc(IMG_TEST_N*sizeof(F16*));
+    //Allocate Output for GEN_SIGNATURE_IMAGES number
+    F16** Output = (F16**)pi_l2_malloc(GEN_SIGNATURE_IMAGES*sizeof(F16*));
 
-    for (int i=0;i<IMG_TEST_N;i++){
+    for (int i=0;i<GEN_SIGNATURE_IMAGES;i++){
         Output[i] = (F16*)pi_l2_malloc(128*sizeof(F16));
         if(Output[i]==NULL){
             printf("Error allocating output buffer...\n");
@@ -272,25 +269,6 @@ int face_id(void)
         return -1;
     }
 
-    // unsigned char *Input = (unsigned char *)pi_l2_malloc(FACE_ID_SIZE * sizeof(unsigned char));
-    // if (Input == NULL)
-    // {
-    //     printf("Error allocating input buffer...\n");
-    //     return -1;
-    // }
-    // // Create space for 3 images to test face reid
-    // F16 **Output = (F16 **)pi_l2_malloc(IMG_TEST_N * sizeof(F16 *));
-
-    // for (int i = 0; i < IMG_TEST_N; i++)
-    // {
-    //     Output[i] = (F16 *)pi_l2_malloc(128 * sizeof(F16));
-    //     if (Output[i] == NULL)
-    //     {
-    //         printf("Error allocating output buffer...\n");
-    //         return -1;
-    //     }
-    // }
-
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
@@ -303,6 +281,24 @@ int face_id(void)
         printf("Cluster open failed !\n");
         pmsis_exit(-4);
     }
+
+
+    // Opening camera and settings ROI to 480x480
+    if (pi_open(PI_CAMERA_HM0360, &camera))
+    {
+        printf("Failed to open camera\n");
+        return -1;
+    }
+    printf("Turning camera on...\n");
+    //turn on camera
+    pi_camera_slicing_conf_t roi;
+    roi.x=80;
+    roi.y=0;
+    roi.w=480;
+    roi.h=480;
+    roi.slice_en=1;
+    pi_camera_control(camera, PI_CAMERA_CMD_ROI, (void*) &roi);
+    pi_camera_control(camera, PI_CAMERA_CMD_ON, 0);
 
     printf("FC Frequency = %d Hz CL Frequency = %d Hz PERIPH Frequency = %d Hz\n",
            pi_freq_get(PI_FREQ_DOMAIN_FC), pi_freq_get(PI_FREQ_DOMAIN_CL), pi_freq_get(PI_FREQ_DOMAIN_PERIPH));
@@ -334,18 +330,21 @@ int face_id(void)
         }
     }
 
-    for (int i = 0; i < IMG_TEST_N; i++)
-    //for (int i = 0; i < 1; i++)
-    {
+    for (int iter = 0; iter < GEN_SIGNATURE_IMAGES; iter++)
+    {   
+
         ImageIn = (uint8_t* )pi_l2_malloc(480*480);
-        if (ReadImageFromFile(image_list[i], IMG_IN_W, IMG_IN_H, 1, ImageIn, IMG_IN_W * IMG_IN_H * sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
-        {
-            printf("Failed to load image %s or dimension mismatch \n");
-            return -1;
-        }
+
+        pi_camera_capture_async(camera, ImageIn, 480*480, pi_evt_sig_init(&cam_task));
+        pi_camera_control(camera, PI_CAMERA_CMD_START, 0);
+
+        pi_evt_wait(&cam_task);
+
+        pi_camera_control(camera, PI_CAMERA_CMD_STOP, 0);
 
         //////// Calling ISP
         ISP_Filtering(&cluster_dev,ImageIn, ImageOut_ram);
+
         pi_l2_free(ImageIn,480*480);
         
         //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, ImageOut_ram, RGB888_IO);
@@ -408,6 +407,7 @@ int face_id(void)
                 //printf("score: %f xmin: %f ymin: %f w:%f h:%f\n",i,bboxes[i].score, bboxes[i].xmin,bboxes[i].ymin,bboxes[i].w,bboxes[i].h);
         }
 
+        int face_det_num=0;
         // For each found face run face ID on it
         for(int i=0;i<MAX_BB_OUT;i++){
             if (bboxes[i].alive){
@@ -440,8 +440,10 @@ int face_id(void)
                 bilinear_resize_hwc(&ResizeArg);
                 
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
+                
 
-                //WriteImageToFile("../face_id_input_rgb.ppm", 112,112,3, face_out, RGB888_IO);
+                sprintf(im_name,"../signatures/face_id_input_rgb_%02d_%02d.ppm",iter,face_det_num++);
+                WriteImageToFile(im_name, 112,112,3, face_out, RGB888_IO);
                 
                 histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
 
@@ -458,20 +460,46 @@ int face_id(void)
                 pi_l2_free(face_out,112*112*3);
             }
         }
-
-        float fra1_fra2,fra1_manu1;
-        fra1_fra2  = cosine_similarity(Output[0],francesco);
-        fra1_manu1 = cosine_similarity(Output[0],manuele);
-        printf("Cosine similarity results:\n");
-        printf("Cosine similarity francesco1 - francesco2: %f\n",fra1_fra2);
-        printf("Cosine similarity francesco1 - manuele: %f\n"   ,fra1_manu1);
-        if(fra1_fra2<0.58 && fra1_manu1 > 0.13){
-            printf("CI ERROR, Cosine Similarity degradation\n");
-            printf("Cosine similarity francesco1 - francesco2 should be >=0.58 and actually is %f\n",fra1_fra2);
-            printf("Cosine similarity francesco1 - manuele should be <0.13 and actually is %f\n",fra1_manu1);
-            return -1;
-        }
     }
+
+    printf("Average faceid: \n");
+    // Averge the nuber of images
+    for(int n=0;n<128;n++){
+        float avg=0;
+        for(int i=0;i<GEN_SIGNATURE_IMAGES;i++){
+            if(isnan(Output[i][n])) continue;
+            avg += (float) Output[i][n]/GEN_SIGNATURE_IMAGES;
+        }
+        Output[0][n] = avg;
+        printf("%f, ",Output[0][n]);
+    }
+
+    //Open a file on host and save the output
+
+    /** HostFs dump to PC **/
+    pi_device_t host_fs;
+    struct pi_hostfs_conf hostfs_conf;
+    pi_hostfs_conf_init(&hostfs_conf);
+    static pi_fs_file_t *file;
+    pi_open_from_conf(&host_fs, &hostfs_conf);
+
+    if (pi_fs_mount(&host_fs))
+    {
+        printf("Failed to mount host fs\n");
+        return -3;
+    }
+    
+    file = pi_fs_open(&host_fs, "../signatures/signature.bin", PI_FS_FLAGS_WRITE);
+    if (file == NULL)
+    {
+        printf("Failed to open file\n");
+        return -4;
+    }
+    
+    pi_fs_write(file, Output[0], 128*2);
+    pi_fs_close(file);
+
+    pi_fs_unmount(&host_fs);
     
     //Nothing is left to do thus deallocate L2 static and L3
     face_idCNN_Destruct(0, 1, 0, 1, 1);
