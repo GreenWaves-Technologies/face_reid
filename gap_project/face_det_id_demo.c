@@ -21,11 +21,22 @@
 #include "he.h"
 #include "post_process.h"
 
-#define GEN_SIGNATURE_IMAGES 5
-
-
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
+
+/////////////// DB CONFIGURATIONS 
+
+#define MAX_FACES 5
+#define FACE_DB_FILE_NUM 1
+
+char *face_db_files[1] = {
+    __XSTR(DB_1),
+    // __XSTR(DB_2),
+    // __XSTR(DB_3),
+    // __XSTR(DB_4)
+};
+
+/////////////// 
 
 #ifndef STACK_SIZE
 #define STACK_SIZE 1024
@@ -57,21 +68,18 @@ typedef struct ArgISPCluster
 
 static void ISP_cluster_main(ArgISPCluster_T *ArgC)
 {
-    printf ("cluster master start\n");
+    //printf ("cluster master start\n");
     int32_t perf_count;
     pi_perf_conf(1 << PI_PERF_CYCLES);
     pi_perf_start();
 
-    //#if IMG_VGA
     demosaic_image(ArgC->ImageIn, ArgC->ImageOut);
-    //#else //IMG_HD
-    //demosaic_image_HWC_HD(ArgC->ImageIn, ArgC->ImageOut);
-    //#endif
-
+    white_balance_HWC_L3Histogram(ArgC->ImageOut,95);
+    
     pi_perf_stop();
     perf_count = pi_perf_read(PI_PERF_CYCLES);
 
-    printf("\nCycles on cluster: %d Cycles\n", (perf_count));
+    //printf("\nCycles on cluster: %d Cycles\n", (perf_count));
     
 }
 
@@ -123,14 +131,7 @@ static void cluster(void *Arg)
 #endif
 
     face_idCNN(fi_cluster_arg->input, fi_cluster_arg->output, NULL);
-    printf("Runner completed\n");
 }
-
-char *image_list[128] = {
-    __XSTR(INPUT_IMAGE_1),
-    __XSTR(INPUT_IMAGE_2),
-    __XSTR(INPUT_IMAGE_3),
-    __XSTR(INPUT_IMAGE_4)};
 
 float cosine_similarity(F16 *a, F16 *b)
 {
@@ -217,11 +218,7 @@ static void RunFaceDetection(ArgFACE_DETCluster_T*Arg)
 	gap_cl_starttimer();
 	gap_cl_resethwtimer();
 #endif
-  printf("Running on cluster\n");
-
-  face_detCNN(Arg->in,Arg->boxes_out,Arg->scores_out,&(Arg->boxes_out[512*16]),&(Arg->scores_out[512]),NULL);
-  printf("Runner completed\n");
-
+    face_detCNN(Arg->in,Arg->boxes_out,Arg->scores_out,&(Arg->boxes_out[512*16]),&(Arg->scores_out[512]),NULL);
 }
 
 int face_id(void)
@@ -235,10 +232,46 @@ int face_id(void)
 
     face_id_clusterArg fi_cluster_arg;
 
-    //Allocate Output for GEN_SIGNATURE_IMAGES number
-    F16** Output = (F16**)pi_l2_malloc(GEN_SIGNATURE_IMAGES*sizeof(F16*));
+    //Read DB images from Flash
+    F16** db_ids = (F16**)pi_l2_malloc(FACE_DB_FILE_NUM*sizeof(F16*));
+    for (int i=0;i<FACE_DB_FILE_NUM;i++){
+        db_ids[i] = (F16*)pi_l2_malloc(128*sizeof(F16));
+        if(db_ids[i]==NULL){
+            printf("Error allocating db_ids buffer...\n");
+            return -1;
+        }
+    }
+    static pi_fs_file_t *file;
+    static struct pi_device fs;
 
-    for (int i=0;i<GEN_SIGNATURE_IMAGES;i++){
+    struct pi_readfs_conf conf;
+    pi_readfs_conf_init(&conf);
+
+    // if using default layout, uncoment next line
+    conf.fs.partition_name = "readfs_flash";
+
+    pi_open_from_conf(&fs, &conf);
+
+    if (pi_fs_mount(&fs))
+        return -1;
+
+    printf("readfs mounted\n");
+
+    for (int i=0;i<FACE_DB_FILE_NUM;i++){
+
+        file = pi_fs_open(&fs, face_db_files[i], 0);
+        if (file == NULL) return -2;
+
+        pi_fs_read(file, db_ids[i], 128*2);
+
+        pi_fs_close(file);
+    }
+    pi_fs_unmount(&fs);
+
+    //Allocate Output for MAX_FACES number
+    F16** Output = (F16**)pi_l2_malloc(MAX_FACES*sizeof(F16*));
+
+    for (int i=0;i<MAX_FACES;i++){
         Output[i] = (F16*)pi_l2_malloc(128*sizeof(F16));
         if(Output[i]==NULL){
             printf("Error allocating output buffer...\n");
@@ -329,9 +362,12 @@ int face_id(void)
             pmsis_exit(-6);
         }
     }
-
-    for (int iter = 0; iter < GEN_SIGNATURE_IMAGES; iter++)
-    {   
+    bbox_float_t* bboxes = pi_l2_malloc(MAX_BB_OUT*sizeof(bbox_float_t));
+    if(bboxes == NULL){
+        printf("bboxes alloc error!\n");
+        return (-1);
+    }
+    while(1){   
 
         ImageIn = (uint8_t* )pi_l2_malloc(480*480);
 
@@ -367,15 +403,14 @@ int face_id(void)
         facedet_arg.scores_out=scores_out;
 
         pi_cluster_task(&task, (void (*)(void *))&RunFaceDetection, &facedet_arg);
-        pi_cluster_task_stacks(&task, NULL, 1024);
+        //pi_cluster_task_stacks(&task, NULL, 1024);
         pi_cluster_send_task_to_cl(&cluster_dev,&task);
         face_detCNN_Destruct(1, 0, 1, 0, 0, 0);
 
         float *scores = pi_l2_malloc(896*sizeof(float));
 	    float *boxes  = pi_l2_malloc(16*896*sizeof(float));
-	    bbox_float_t* bboxes = pi_l2_malloc(MAX_BB_OUT*sizeof(bbox_float_t));
 
-        if(scores==NULL || boxes==NULL || bboxes==NULL){
+        if(scores==NULL || boxes==NULL || boxes==NULL){
             printf("Alloc error\n");
             return (-1);
         }
@@ -396,9 +431,8 @@ int face_id(void)
         non_max_suppress(bboxes);
         //printBboxes_forPython(bboxes);
 
-        pi_l2_free(scores,896*sizeof(float));
         pi_l2_free(boxes,16*896*sizeof(float));
-
+        pi_l2_free(scores,896*sizeof(float));
 
         // This is for debugging
         for(int i=0;i<MAX_BB_OUT;i++){
@@ -406,11 +440,12 @@ int face_id(void)
                 printf("Detected Face %d score: %f\n",i,bboxes[i].score);
                 //printf("score: %f xmin: %f ymin: %f w:%f h:%f\n",i,bboxes[i].score, bboxes[i].xmin,bboxes[i].ymin,bboxes[i].w,bboxes[i].h);
         }
-
+        
         int face_det_num=0;
         // For each found face run face ID on it
         for(int i=0;i<MAX_BB_OUT;i++){
-            if (bboxes[i].alive){
+            if (bboxes[i].alive && face_det_num<MAX_FACES){
+                printf("Call face id on Face %d\n",i);
                 // Allocate space to load Face Bounding Box
                 uint8_t * face_out = pi_l2_malloc(112*112*3);
                 uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
@@ -441,66 +476,45 @@ int face_id(void)
                 
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
                 
-
-                sprintf(im_name,"../signatures/face_id_input_rgb_%02d_%02d.ppm",iter,face_det_num++);
-                WriteImageToFile(im_name, 112,112,3, face_out, RGB888_IO);
-                
-                histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
+                //histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
+                //sprintf(im_name,"../signatures/face_id_input_rgb_%02d_%02d.ppm",iter,face_det_num++);
+                //WriteImageToFile(im_name, 112,112,3, face_out, RGB888_IO);
 
                 fi_cluster_arg.input = face_out;
-                fi_cluster_arg.output = Output[i];
+                fi_cluster_arg.output = Output[face_det_num];
 
                 face_idCNN_Construct(1, 0, 1, 0, 0, 0);
-                printf("Call cluster\n");
+                //printf("Call cluster\n");
                 pi_cluster_task(&task, (void (*)(void *))cluster, &fi_cluster_arg);
                 //pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
 
                 pi_cluster_send_task_to_cl(&cluster_dev, &task);
                 face_idCNN_Destruct(1, 0, 1, 0, 0);
                 pi_l2_free(face_out,112*112*3);
+                
+
+                for(int db_id=0;db_id<FACE_DB_FILE_NUM;db_id++){
+                    float sim;
+                    sim  = cosine_similarity(Output[face_det_num],db_ids[db_id]);
+                    printf("Cosine similarity with person %d : %f\n",db_id,sim);
+                    face_det_num++;
+                }
             }
         }
     }
 
-    printf("Average faceid: \n");
-    // Averge the nuber of images
-    for(int n=0;n<128;n++){
-        float avg=0;
-        for(int i=0;i<GEN_SIGNATURE_IMAGES;i++){
-            if(isnan(Output[i][n])) continue;
-            avg += (float) Output[i][n]/GEN_SIGNATURE_IMAGES;
-        }
-        Output[0][n] = avg;
-        printf("%f, ",Output[0][n]);
-    }
+    // printf("Average faceid: \n");
+    // // Averge the nuber of images
+    // for(int n=0;n<128;n++){
+    //     float avg=0;
+    //     for(int i=0;i<GEN_SIGNATURE_IMAGES;i++){
+    //         if(isnan(Output[i][n])) continue;
+    //         avg += (float) Output[i][n]/GEN_SIGNATURE_IMAGES;
+    //     }
+    //     Output[0][n] = avg;
+    //     printf("%f, ",Output[0][n]);
+    // }
 
-    //Open a file on host and save the output
-
-    /** HostFs dump to PC **/
-    pi_device_t host_fs;
-    struct pi_hostfs_conf hostfs_conf;
-    pi_hostfs_conf_init(&hostfs_conf);
-    static pi_fs_file_t *file;
-    pi_open_from_conf(&host_fs, &hostfs_conf);
-
-    if (pi_fs_mount(&host_fs))
-    {
-        printf("Failed to mount host fs\n");
-        return -3;
-    }
-    
-    file = pi_fs_open(&host_fs, "../signatures/signature.bin", PI_FS_FLAGS_WRITE);
-    if (file == NULL)
-    {
-        printf("Failed to open file\n");
-        return -4;
-    }
-    
-    pi_fs_write(file, Output[0], 128*2);
-    pi_fs_close(file);
-
-    pi_fs_unmount(&host_fs);
-    
     //Nothing is left to do thus deallocate L2 static and L3
     face_idCNN_Destruct(0, 1, 0, 1, 1);
     face_detCNN_Destruct(0, 1, 0, 1, 1, 1);

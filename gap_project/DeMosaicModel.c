@@ -46,7 +46,8 @@ int main(int argc, char **argv)
 
 	GenerateDeMosaic_OutHWC("demosaic_image", W, H, sizeof(char),0,1,bayer_BGGR);
 	//GenerateDeMosaic_OutCHW("demosaic_image", W, H, sizeof(char),1,1,bayer_BGGR);
-	
+	GenerateWB_HWC("white_balance_HWC_L3", W,H, 1);
+
 	// Now that we are done with model parsing we generate the code
 	GenerateTilingCode();
 	return 0;

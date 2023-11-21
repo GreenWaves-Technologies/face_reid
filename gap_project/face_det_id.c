@@ -334,7 +334,7 @@ int face_id(void)
         }
     }
 
-    for (int i = 0; i < IMG_TEST_N; i++)
+    for (int iter = 0; iter < IMG_TEST_N; iter++)
     //for (int i = 0; i < 1; i++)
     {
         ImageIn = (uint8_t* )pi_l2_malloc(480*480);
@@ -446,7 +446,7 @@ int face_id(void)
                 histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
 
                 fi_cluster_arg.input = face_out;
-                fi_cluster_arg.output = Output[i];
+                fi_cluster_arg.output = Output[iter];
 
                 face_idCNN_Construct(1, 0, 1, 0, 0, 0);
                 printf("Call cluster\n");

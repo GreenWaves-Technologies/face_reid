@@ -30,14 +30,18 @@ elseif(CONFIG_FACE_DETECTION_ID_INFERENCE)
 elseif(CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE)
 	set(MAIN  face_det_id_gen_signature.c)
 	set(GRAPH_WARM 3)
-	list(APPEND TARGET_PREPROCESSOR -DINPUT_IMAGE_1=${CMAKE_CURRENT_SOURCE_DIR}/vga_samples/test_image_raw_bayer480x480_2.pgm)
 	list(APPEND TARGET_SRCS post_process.c)
 	list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
 elseif(CONFIG_DEMO)
-  set(MAIN face_det_id_demo.c)
-  set(GRAPH_WARM 3)
-  list(APPEND TARGET_SRCS post_process.c)
-  list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
+  	set(MAIN face_det_id_demo.c)
+  	set(GRAPH_WARM 3)
+	list(APPEND TARGET_SRCS post_process.c)
+  	list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
+	
+	#Here adding all face ID database files to flash and passing names to main
+  	list(APPEND TARGET_PREPROCESSOR -DDB_1=francesco.bin)
+	readfs_add_files(FILES ${CMAKE_CURRENT_SOURCE_DIR}/signatures/francesco.bin FLASH ${READFS_FLASH})
+  	
 endif()
 
 

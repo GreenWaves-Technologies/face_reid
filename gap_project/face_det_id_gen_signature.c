@@ -21,7 +21,7 @@
 #include "he.h"
 #include "post_process.h"
 
-#define GEN_SIGNATURE_IMAGES 5
+#define GEN_SIGNATURE_IMAGES 3
 
 
 #define __XSTR(__s) __STR(__s)
@@ -67,7 +67,7 @@ static void ISP_cluster_main(ArgISPCluster_T *ArgC)
     //#else //IMG_HD
     //demosaic_image_HWC_HD(ArgC->ImageIn, ArgC->ImageOut);
     //#endif
-
+    white_balance_HWC_L3Histogram(ArgC->ImageOut,95);
     pi_perf_stop();
     perf_count = pi_perf_read(PI_PERF_CYCLES);
 
@@ -112,7 +112,7 @@ void ISP_Filtering(pi_device_t* cluster_dev,uint8_t*in, uint8_t*out){
     pi_l2_free(DeMosaic_L2_Memory, _DeMosaic_L2_Memory_SIZE);
 }
 
-static void cluster(void *Arg)
+static void faceid_cluster(void *Arg)
 {
     face_id_clusterArg *fi_cluster_arg = (face_id_clusterArg *)Arg;
 
@@ -123,14 +123,8 @@ static void cluster(void *Arg)
 #endif
 
     face_idCNN(fi_cluster_arg->input, fi_cluster_arg->output, NULL);
-    printf("Runner completed\n");
+    //printf("Runner completed\n");
 }
-
-char *image_list[128] = {
-    __XSTR(INPUT_IMAGE_1),
-    __XSTR(INPUT_IMAGE_2),
-    __XSTR(INPUT_IMAGE_3),
-    __XSTR(INPUT_IMAGE_4)};
 
 float cosine_similarity(F16 *a, F16 *b)
 {
@@ -299,6 +293,7 @@ int face_id(void)
     roi.slice_en=1;
     pi_camera_control(camera, PI_CAMERA_CMD_ROI, (void*) &roi);
     pi_camera_control(camera, PI_CAMERA_CMD_ON, 0);
+    
 
     printf("FC Frequency = %d Hz CL Frequency = %d Hz PERIPH Frequency = %d Hz\n",
            pi_freq_get(PI_FREQ_DOMAIN_FC), pi_freq_get(PI_FREQ_DOMAIN_CL), pi_freq_get(PI_FREQ_DOMAIN_PERIPH));
@@ -329,7 +324,12 @@ int face_id(void)
             pmsis_exit(-6);
         }
     }
-
+    bbox_float_t* bboxes = pi_l2_malloc(MAX_BB_OUT*sizeof(bbox_float_t));
+    if(bboxes == NULL){
+        printf("bboxes alloc error!\n");
+        return (-1);
+    }
+    
     for (int iter = 0; iter < GEN_SIGNATURE_IMAGES; iter++)
     {   
 
@@ -337,16 +337,19 @@ int face_id(void)
 
         pi_camera_capture_async(camera, ImageIn, 480*480, pi_evt_sig_init(&cam_task));
         pi_camera_control(camera, PI_CAMERA_CMD_START, 0);
-
         pi_evt_wait(&cam_task);
+        pi_camera_control(camera, PI_CAMERA_CMD_STOP, 0);
 
+        pi_camera_capture_async(camera, ImageIn, 480*480, pi_evt_sig_init(&cam_task));
+        pi_camera_control(camera, PI_CAMERA_CMD_START, 0);
+        pi_evt_wait(&cam_task);
         pi_camera_control(camera, PI_CAMERA_CMD_STOP, 0);
 
         //////// Calling ISP
         ISP_Filtering(&cluster_dev,ImageIn, ImageOut_ram);
 
         pi_l2_free(ImageIn,480*480);
-        
+    
         //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, ImageOut_ram, RGB888_IO);
 
         //////// Calling Face Detection
@@ -373,7 +376,6 @@ int face_id(void)
 
         float *scores = pi_l2_malloc(896*sizeof(float));
 	    float *boxes  = pi_l2_malloc(16*896*sizeof(float));
-	    bbox_float_t* bboxes = pi_l2_malloc(MAX_BB_OUT*sizeof(bbox_float_t));
 
         if(scores==NULL || boxes==NULL || bboxes==NULL){
             printf("Alloc error\n");
@@ -396,9 +398,8 @@ int face_id(void)
         non_max_suppress(bboxes);
         //printBboxes_forPython(bboxes);
 
-        pi_l2_free(scores,896*sizeof(float));
         pi_l2_free(boxes,16*896*sizeof(float));
-
+        pi_l2_free(scores,896*sizeof(float));
 
         // This is for debugging
         for(int i=0;i<MAX_BB_OUT;i++){
@@ -441,19 +442,17 @@ int face_id(void)
                 
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
                 
-
+                //histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
                 sprintf(im_name,"../signatures/face_id_input_rgb_%02d_%02d.ppm",iter,face_det_num++);
                 WriteImageToFile(im_name, 112,112,3, face_out, RGB888_IO);
-                
-                histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
 
                 fi_cluster_arg.input = face_out;
-                fi_cluster_arg.output = Output[i];
+                fi_cluster_arg.output = Output[iter];
 
                 face_idCNN_Construct(1, 0, 1, 0, 0, 0);
                 printf("Call cluster\n");
-                pi_cluster_task(&task, (void (*)(void *))cluster, &fi_cluster_arg);
-                //pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
+                pi_cluster_task(&task, (void (*)(void *))faceid_cluster, &fi_cluster_arg);
+                pi_cluster_task_stacks(&task, NULL, SLAVE_STACK_SIZE);
 
                 pi_cluster_send_task_to_cl(&cluster_dev, &task);
                 face_idCNN_Destruct(1, 0, 1, 0, 0);
@@ -462,20 +461,21 @@ int face_id(void)
         }
     }
 
+    pi_l2_free(bboxes,MAX_BB_OUT*sizeof(bbox_float_t));
+
     printf("Average faceid: \n");
     // Averge the nuber of images
+    F16* face_id_output = (F16*)pi_l2_malloc(2*128);
     for(int n=0;n<128;n++){
         float avg=0;
         for(int i=0;i<GEN_SIGNATURE_IMAGES;i++){
             if(isnan(Output[i][n])) continue;
-            avg += (float) Output[i][n]/GEN_SIGNATURE_IMAGES;
+            avg += Output[i][n];
         }
-        Output[0][n] = avg;
-        printf("%f, ",Output[0][n]);
+        face_id_output[n] = avg/GEN_SIGNATURE_IMAGES;
     }
 
     //Open a file on host and save the output
-
     /** HostFs dump to PC **/
     pi_device_t host_fs;
     struct pi_hostfs_conf hostfs_conf;
@@ -496,10 +496,11 @@ int face_id(void)
         return -4;
     }
     
-    pi_fs_write(file, Output[0], 128*2);
+    pi_fs_write(file, face_id_output, 128*2);
     pi_fs_close(file);
 
     pi_fs_unmount(&host_fs);
+    pi_l2_free(face_id_output,128*2);
     
     //Nothing is left to do thus deallocate L2 static and L3
     face_idCNN_Destruct(0, 1, 0, 1, 1);
