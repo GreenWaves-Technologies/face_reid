@@ -21,7 +21,7 @@
 #include "he.h"
 #include "post_process.h"
 
-#define IMG_TEST_N 4
+#define IMG_TEST_N 1
 
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
@@ -272,25 +272,6 @@ int face_id(void)
         return -1;
     }
 
-    // unsigned char *Input = (unsigned char *)pi_l2_malloc(FACE_ID_SIZE * sizeof(unsigned char));
-    // if (Input == NULL)
-    // {
-    //     printf("Error allocating input buffer...\n");
-    //     return -1;
-    // }
-    // // Create space for 3 images to test face reid
-    // F16 **Output = (F16 **)pi_l2_malloc(IMG_TEST_N * sizeof(F16 *));
-
-    // for (int i = 0; i < IMG_TEST_N; i++)
-    // {
-    //     Output[i] = (F16 *)pi_l2_malloc(128 * sizeof(F16));
-    //     if (Output[i] == NULL)
-    //     {
-    //         printf("Error allocating output buffer...\n");
-    //         return -1;
-    //     }
-    // }
-
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
@@ -338,7 +319,7 @@ int face_id(void)
     //for (int i = 0; i < 1; i++)
     {
         ImageIn = (uint8_t* )pi_l2_malloc(480*480);
-        if (ReadImageFromFile(image_list[i], IMG_IN_W, IMG_IN_H, 1, ImageIn, IMG_IN_W * IMG_IN_H * sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
+        if (ReadImageFromFile(image_list[iter], IMG_IN_W, IMG_IN_H, 1, ImageIn, IMG_IN_W * IMG_IN_H * sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0))
         {
             printf("Failed to load image %s or dimension mismatch \n");
             return -1;
