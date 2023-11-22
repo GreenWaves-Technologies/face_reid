@@ -1,11 +1,12 @@
 # Face Re-Identification on Gap9
 
-This project shows Face Detection + Face Identification on Gap9. The project is composed of two Neural Networks running on Gap9 and some ISP features. The following pictures resumes the full processing:
+This project shows Face Detection + Face Identification on Gap9. The project is composed of two Neural Networks running on Gap9 and some ISP features. The following picture resumes the full processing:
 
 <p align="center">
-  <img src="readme_images/Face_REID_Algo.png" alt="Face Reid Algo" />
+  <img src="readme_images/Face_REID_Algo.png" alt="Face Reid Processing on Gap9" />
 </p>
 
+To run the project on board you need an HIMAX HM0360 add-on board for the GAP9 EVK, contact Greenwaves through [this form](https://greenwaves-technologies.com/contacts/) to get one. 
 
 ## Gap Project Running Modes:
 
