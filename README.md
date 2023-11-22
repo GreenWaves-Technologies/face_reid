@@ -3,8 +3,8 @@
 ### Content
 
 This project contains:
--   **model_training** -> hosts all the pytorch scripts to train and convert to ONNX the Face REID model based on shuffle Face Net [^1].
--   **gap_project** ->  contains the Gap9 project.
+-   **model_training** -> hosts all the pytorch scripts to train and convert to ONNX the Face REID model based on shuffle Face Net [^1]. [GO TO README](model_training/README.md)
+-   **gap_project** ->  contains the Gap9 project. [GO TO README](gap_project/README.md)
 
 
 
