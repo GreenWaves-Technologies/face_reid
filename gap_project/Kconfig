@@ -33,11 +33,11 @@ menu "Face ID menu"
         prompt "Application Mode"
 
             config ONLY_FACE_ID_INFERENCE
-                bool "Inference Mode only face id: launch the model on specific input images"
+                bool "Only face id Inference Mode : launch the model on specific input images"
                 default y
 
             config FACE_DETECTION_ID_INFERENCE
-                bool "Inference Mode with face detection + face id: launch the 2 models on specific input images"
+                bool "face detection + face id Inference Mode: launch the 2 models on specific input images"
             
             config FACE_DETECTION_ID_GEN_SIGNATURE
                 bool "Generate Signature of Face with Camera"

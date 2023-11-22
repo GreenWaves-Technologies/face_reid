@@ -9,7 +9,7 @@ set(TARGET_NAME         face_id)
 include($ENV{GAP_SDK_HOME}/utils/cmake/setup.cmake)
 
 ###############################################################################
-# Set main File
+# Set Mode
 ###############################################################################
 
 if(CONFIG_ONLY_FACE_ID_INFERENCE)
