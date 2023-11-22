@@ -61,12 +61,9 @@ static void ISP_cluster_main(ArgISPCluster_T *ArgC)
     pi_perf_conf(1 << PI_PERF_CYCLES);
     pi_perf_start();
 
-    //#if IMG_VGA
     demosaic_image(ArgC->ImageIn, ArgC->ImageOut);
-    //#else //IMG_HD
-    //demosaic_image_HWC_HD(ArgC->ImageIn, ArgC->ImageOut);
-    //#endif
-
+    white_balance_HWC_L3Histogram(ArgC->ImageOut,95);
+    
     pi_perf_stop();
     perf_count = pi_perf_read(PI_PERF_CYCLES);
 
@@ -329,7 +326,7 @@ int face_id(void)
         ISP_Filtering(&cluster_dev,ImageIn, ImageOut_ram);
         pi_l2_free(ImageIn,480*480);
         
-        //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, ImageOut_ram, RGB888_IO);
+        WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, (uint32_t)ImageOut_ram, RGB888_IO);
 
         //////// Calling Face Detection
         {
@@ -422,9 +419,11 @@ int face_id(void)
                 
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
 
-                //WriteImageToFile("../face_id_input_rgb.ppm", 112,112,3, face_out, RGB888_IO);
+                WriteImageToFile("../face_id_input_rgb.ppm", 112,112,3, face_out, RGB888_IO);
                 
                 histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
+
+                WriteImageToFile("../face_id_input_rgb_after_hist.ppm", 112,112,3, face_out, RGB888_IO);
 
                 fi_cluster_arg.input = face_out;
                 fi_cluster_arg.output = Output[iter];
