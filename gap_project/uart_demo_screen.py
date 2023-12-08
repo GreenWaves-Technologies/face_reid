@@ -13,6 +13,7 @@ from scipy.spatial import distance
 
 GAP_UART_BAUDRATE=1152000
 UART_DEV='/dev/ttyUSB1'
+
 THRESHOLD=0.50
 
 UART_START_STREAM=b'\x0F\xF0'
@@ -28,6 +29,7 @@ def receive_image(ser,l,t,face_db):
     while True:
         read_bytes = ser.read(2)
         #print(read_bytes)
+
         offset=0
         if read_bytes == UART_START_STREAM:
             try: 
@@ -42,6 +44,7 @@ def receive_image(ser,l,t,face_db):
                     while len(coords_data) < 4*4:
                         coords_data += ser.read(1)
                     coord_data_array = np.frombuffer(coords_data, np.int32)
+
                     #print(coord_data_array)
                     x = coord_data_array[0]
                     y = coord_data_array[1]
