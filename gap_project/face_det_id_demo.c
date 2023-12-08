@@ -55,6 +55,77 @@ AT_DEFAULTRAM_T DefaultRam;
 
 AT_DEFAULTFLASH_EXT_ADDR_TYPE face_id_L3_Flash = 0;
 AT_DEFAULTFLASH_EXT_ADDR_TYPE face_det_L3_Flash = 0;
+pi_device_t* uart_device;
+
+typedef struct uart_payload{
+    int x;
+    int y;
+    int w;
+    int h;
+    uint8_t * face_bb;
+    float16* faceid;
+}uart_payload_t;
+
+uint8_t UART_START_COM[] = {0x0F,0xF0};
+uint8_t UART_END_COM[] = {0xFF};
+
+void init_uart_communication(pi_device_t* uart_dev,uint32_t baudrate ){
+    pi_pad_function_set(PI_PAD_065, PI_PAD_FUNC0);
+    pi_pad_function_set(PI_PAD_066, PI_PAD_FUNC0);
+    pi_pad_function_set(PI_PAD_044, PI_PAD_FUNC0);
+    pi_pad_mux_group_set(PI_PAD_044, PI_PAD_MUX_GROUP_UART1_RX);
+    pi_pad_function_set(PI_PAD_045, PI_PAD_FUNC0);
+    pi_pad_mux_group_set(PI_PAD_045, PI_PAD_MUX_GROUP_UART1_TX);
+
+    struct pi_uart_conf config = {0};
+    /* Init & open uart. */
+    pi_uart_conf_init(&config);
+    config.uart_id = 1;
+    config.use_fast_clk = 0;              // Enable the fast clk for uart
+    config.baudrate_bps = baudrate;
+    config.enable_tx = 1;
+    config.enable_rx = 0;
+    pi_open_from_conf(uart_dev, &config);
+
+    if (pi_uart_open(uart_dev))
+    {
+        pmsis_exit(-117);
+    }
+}
+
+PI_L2 uint8_t uart_l2;
+int32_t start_payloads_transmission(pi_device_t* uart_dev){
+    pi_err_t err = PI_OK;
+    err = pi_uart_write(uart_dev,UART_START_COM,2);
+    return err;
+}
+
+int32_t send_image_payload(pi_device_t* uart_dev, uart_payload_t* payload){
+    pi_err_t err = PI_OK;
+    uart_l2=1;
+    err = pi_uart_write(uart_dev,&uart_l2,1);
+    //Send BB coords and sizes
+    err = pi_uart_write(uart_dev,payload,4*4);
+    //Send bbox image
+    for(int i=0;i<payload->h;i++)
+    {
+        err = pi_uart_write(uart_dev,(payload->face_bb)+(payload->w*3*i),payload->w*3);
+        if(err) { PI_LOG_ERR("HM0360 Test","Failed to start UART communication\n");}
+    }
+    return err;
+}
+
+int32_t send_faceid_payload(pi_device_t* uart_dev, uart_payload_t* payload){
+    pi_err_t err = PI_OK;
+    err = pi_uart_write(uart_dev,payload->faceid,128*sizeof(float16));
+    return err;
+}
+
+int32_t end_payloads_transmission(pi_device_t* uart_dev){
+    pi_err_t err = PI_OK;
+    err = pi_uart_write(uart_dev,UART_END_COM,1);    
+    return err;
+}
 
 typedef struct ArgISPCluster
 {
@@ -74,7 +145,7 @@ static void ISP_cluster_main(ArgISPCluster_T *ArgC)
     pi_perf_start();
 
     demosaic_image(ArgC->ImageIn, ArgC->ImageOut);
-    white_balance_HWC_L3Histogram(ArgC->ImageOut,95);
+    white_balance_HWC_L3(ArgC->ImageOut,ArgC->ImageOut,98);
     
     pi_perf_stop();
     perf_count = pi_perf_read(PI_PERF_CYCLES);
@@ -232,41 +303,9 @@ int face_id(void)
 
     face_id_clusterArg fi_cluster_arg;
 
-    //Read DB images from Flash
-    F16** db_ids = (F16**)pi_l2_malloc(FACE_DB_FILE_NUM*sizeof(F16*));
-    for (int i=0;i<FACE_DB_FILE_NUM;i++){
-        db_ids[i] = (F16*)pi_l2_malloc(128*sizeof(F16));
-        if(db_ids[i]==NULL){
-            printf("Error allocating db_ids buffer...\n");
-            return -1;
-        }
-    }
-    static pi_fs_file_t *file;
-    static struct pi_device fs;
-
-    struct pi_readfs_conf conf;
-    pi_readfs_conf_init(&conf);
-
-    // if using default layout, uncoment next line
-    conf.fs.partition_name = "readfs_flash";
-
-    pi_open_from_conf(&fs, &conf);
-
-    if (pi_fs_mount(&fs))
-        return -1;
-
-    printf("readfs mounted\n");
-
-    for (int i=0;i<FACE_DB_FILE_NUM;i++){
-
-        file = pi_fs_open(&fs, face_db_files[i], 0);
-        if (file == NULL) return -2;
-
-        pi_fs_read(file, db_ids[i], 128*2);
-
-        pi_fs_close(file);
-    }
-    pi_fs_unmount(&fs);
+    uart_device = pi_l2_malloc(sizeof(pi_device_t));
+    init_uart_communication(uart_device,1152000);
+    uart_payload_t *payload = pi_l2_malloc(sizeof(uart_payload_t));
 
     //Allocate Output for MAX_FACES number
     F16** Output = (F16**)pi_l2_malloc(MAX_FACES*sizeof(F16*));
@@ -414,7 +453,7 @@ int face_id(void)
             printf("Alloc error\n");
             return (-1);
         }
-        printf("\n");
+        //printf("\n");
         for(int i=0;i<896;i++){
             //printf("Scores[%d] %f\n", i, scores_out[i]);
             scores[i] = 1/(1+expf(-(((float)scores_out[i]))));
@@ -435,17 +474,22 @@ int face_id(void)
         pi_l2_free(scores,896*sizeof(float));
 
         // This is for debugging
+        #if 0
         for(int i=0;i<MAX_BB_OUT;i++){
             if (bboxes[i].alive)
                 printf("Detected Face %d score: %f\n",i,bboxes[i].score);
                 //printf("score: %f xmin: %f ymin: %f w:%f h:%f\n",i,bboxes[i].score, bboxes[i].xmin,bboxes[i].ymin,bboxes[i].w,bboxes[i].h);
         }
+        #endif
         
         int face_det_num=0;
         // For each found face run face ID on it
+        start_payloads_transmission(uart_device);
         for(int i=0;i<MAX_BB_OUT;i++){
             if (bboxes[i].alive && face_det_num<MAX_FACES){
-                printf("Call face id on Face %d\n",i);
+                
+                //printf("Call face id on Face %d\n",i);
+
                 // Allocate space to load Face Bounding Box
                 uint8_t * face_out = pi_l2_malloc(112*112*3);
                 uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
@@ -474,9 +518,17 @@ int face_id(void)
                 ResizeArg.Channels       = 3;
                 bilinear_resize_hwc(&ResizeArg);
                 
+                //Send Face in to PC
+                payload->x = bboxes[i].xmin;
+                payload->y = bboxes[i].ymin;
+                payload->w = bboxes[i].w;
+                payload->h = bboxes[i].h;
+                payload->face_bb = face_in;
+                send_image_payload(uart_device, payload);
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
                 
-                //histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
+                histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
+                
                 //sprintf(im_name,"../signatures/face_id_input_rgb_%02d_%02d.ppm",iter,face_det_num++);
                 //WriteImageToFile(im_name, 112,112,3, face_out, RGB888_IO);
 
@@ -491,16 +543,13 @@ int face_id(void)
                 pi_cluster_send_task_to_cl(&cluster_dev, &task);
                 face_idCNN_Destruct(1, 0, 1, 0, 0);
                 pi_l2_free(face_out,112*112*3);
-                
 
-                for(int db_id=0;db_id<FACE_DB_FILE_NUM;db_id++){
-                    float sim;
-                    sim  = cosine_similarity(Output[face_det_num],db_ids[db_id]);
-                    printf("Cosine similarity with person %d : %f\n",db_id,sim);
-                    face_det_num++;
-                }
+                payload->faceid=Output[face_det_num];
+                send_faceid_payload( uart_device, payload);
+        
             }
         }
+        end_payloads_transmission(uart_device);
     }
 
     // printf("Average faceid: \n");

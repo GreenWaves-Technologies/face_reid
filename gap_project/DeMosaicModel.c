@@ -17,8 +17,8 @@
 
 int main(int argc, char **argv)
 {
-	BayerOrder_t bayer_BGGR=BGGR;
-	//BayerOrder_t bayer_GRBG=GRBG;
+	BayerOrder_t bayer_order=BGGR;
+	//BayerOrder_t bayer_order=GRBG;
 	// This will parse AutoTiler options and perform various initializations
 	if (TilerParseOptions(argc, argv)) {
 		printf("Failed to initialize or incorrect output arguments directory.\n"); return 1;
@@ -42,10 +42,8 @@ int main(int argc, char **argv)
 	LoadISPLibrary();
 	// Call Resize generator
 	unsigned int W = 480, H = 480;
-	// Simple_DeMosaic_Resize("demosaic_and_resize_image", W,H,1,1,bayer_BGGR);
 
-	GenerateDeMosaic_OutHWC("demosaic_image", W, H, sizeof(char),0,1,bayer_BGGR);
-	//GenerateDeMosaic_OutCHW("demosaic_image", W, H, sizeof(char),1,1,bayer_BGGR);
+	GenerateDeMosaic_OutHWC("demosaic_image", W, H, sizeof(char),0,1,bayer_order);
 	GenerateWB_HWC("white_balance_HWC_L3", W,H, 1);
 
 	// Now that we are done with model parsing we generate the code

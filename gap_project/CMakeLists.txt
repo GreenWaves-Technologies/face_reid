@@ -39,11 +39,10 @@ elseif(CONFIG_DEMO)
   	list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
 	
 	#Here adding all face ID database files to flash and passing names to main
-  	list(APPEND TARGET_PREPROCESSOR -DDB_1=francesco.bin)
-	readfs_add_files(FILES ${CMAKE_CURRENT_SOURCE_DIR}/signatures/francesco.bin FLASH ${READFS_FLASH})
+  	#list(APPEND TARGET_PREPROCESSOR -DDB_1=francesco.bin)
+	#readfs_add_files(FILES ${CMAKE_CURRENT_SOURCE_DIR}/signatures/francesco.bin FLASH ${READFS_FLASH})
   	
 endif()
-
 
 ###############################################################################
 # Autotiler Variables
