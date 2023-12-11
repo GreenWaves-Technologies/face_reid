@@ -76,39 +76,34 @@ def receive_image(ser,l,t,face_db):
                     score=0
                     for x in face_db:
                         score_tmp = 1-distance.cosine(face_id,x['face_id'])
-                        # if score_tmp>1:
-                        #     score_tmp=1
-                        # if score_tmp<0:
-                        #     score_tmp=0
                         if score_tmp > score and score_tmp > THRESHOLD:
                             score = score_tmp
                             name = x['name']
                         #print("name: ",name," score: ",score)
+                    
+                    if score>1:
+                        score=1
+                    if score<0:
+                        score=0
+                    
+                    ## Preparing reclangle for results
+                    rect_res = np.ones((120,320,3),np.uint8)
+                    rect_res[0:120,0:10] = 125
+                    rect_res[0:10,0:320] = 125
+                    rect_res[0:120,-10:-1] = 125
+                    rect_res[-10:-1,0:320] = 125
                     if name != "":
-                        rect_res = np.ones((120,320,3),np.uint8)
-                        rect_res[0:120,0:10] = 125
-                        rect_res[0:10,0:320] = 125
-                        rect_res[0:120,-10:-1] = 125
-                        rect_res[-10:-1,0:320] = 125
                         cv2.putText(rect_res, f'{name}',
                             (20,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
                         cv2.putText(rect_res, f'score: {round(score,2)}%',
                             (20,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
-                        scene[offset:offset+120,480:800,:]=rect_res
                     else:
-                        rect_res = np.ones((120,320,3),np.uint8)
-                        rect_res[0:120,0:10] = 125
-                        rect_res[0:10,0:320] = 125
-                        rect_res[0:120,-10:-1] = 125
-                        rect_res[-10:-1,0:320] = 125
                         cv2.putText(rect_res, f'Unknown person',
                             (20,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
                         # cv2.putText(rect_res, f'score: {round(score,2)}%',
                         #     (20,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
-                        scene[offset:offset+120,480:800,:]=rect_res
+                    scene[offset:offset+120,480:800,:]=rect_res
                     offset=offset+120
-                    
-                    
                 
                 #scene = scene[:, :, ::-1]
                 #cv2.imshow('Image from GAP', resized)
