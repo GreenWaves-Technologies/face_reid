@@ -13,7 +13,7 @@ from scipy.spatial import distance
 
 GAP_UART_BAUDRATE=1152000
 UART_DEV='/dev/ttyUSB1'
-THRESHOLD=0.6
+THRESHOLD=0.50
 
 UART_START_STREAM=b'\x0F\xF0'
 
@@ -41,13 +41,13 @@ def receive_image(ser,l,t,face_db):
                     coords_data = ser.read(4)
                     while len(coords_data) < 4*4:
                         coords_data += ser.read(1)
-                    coord_data_array = np.frombuffer(coords_data, np.uint32)
+                    coord_data_array = np.frombuffer(coords_data, np.int32)
                     #print(coord_data_array)
                     x = coord_data_array[0]
                     y = coord_data_array[1]
                     w = coord_data_array[2]
                     h = coord_data_array[3]
-
+                    #print('x:',x,' y: ',y,' w: ',w,' h: ',h)
 
                     image_size = w*h*3
                     #reading image
@@ -68,17 +68,19 @@ def receive_image(ser,l,t,face_db):
                         h=480-y
                     if x<0:
                         x=0
+                        w=w+x
                     if y<0:
+                        h=h+y
                         y=0
                     scene[y:y+h,x:x+w,:]=face_bb[0:h,0:w,:]
                     
                     name=""
                     score=0
-                    for x in face_db:
-                        score_tmp = 1-distance.cosine(face_id,x['face_id'])
+                    for entry in face_db:
+                        score_tmp = 1-distance.cosine(face_id,entry['face_id'])
                         if score_tmp > score and score_tmp > THRESHOLD:
                             score = score_tmp
-                            name = x['name']
+                            name = entry['name']
                         #print("name: ",name," score: ",score)
                     
                     if score>1:
@@ -103,6 +105,9 @@ def receive_image(ser,l,t,face_db):
                         # cv2.putText(rect_res, f'score: {round(score,2)}%',
                         #     (20,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
                     scene[offset:offset+120,480:800,:]=rect_res
+                    point_y=int(y+(h/2))
+                    point_x=int(x+w)
+                    cv2.line(scene, (point_x,point_y), (480,offset+60), (125, 125, 125), thickness=3, lineType=8)
                     offset=offset+120
                 
                 #scene = scene[:, :, ::-1]

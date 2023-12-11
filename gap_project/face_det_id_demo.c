@@ -492,6 +492,21 @@ int face_id(void)
 
                 // Allocate space to load Face Bounding Box
                 uint8_t * face_out = pi_l2_malloc(112*112*3);
+                if(bboxes[i].xmin<0){
+                    bboxes[i].w= bboxes[i].w+bboxes[i].xmin;
+                    bboxes[i].xmin=0;
+                }
+                if(bboxes[i].ymin<0){
+                    bboxes[i].h = bboxes[i].h+bboxes[i].ymin;
+                    bboxes[i].ymin=0;
+                }
+                // if(bboxes[i].xmin+bboxes[i].w>480){
+                //     bboxes[i].w=bboxes[i].w+bboxes[i].xmin;
+                // }
+                // if(bboxes[i].ymin+bboxes[i].h>480){
+                //     bboxes[i].h = bboxes[i].h+bboxes[i].ymin;
+                // }
+
                 uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
                 if(face_in==NULL || face_out==NULL){
                     printf("Error allocating faces inpu! \n");
@@ -519,11 +534,12 @@ int face_id(void)
                 bilinear_resize_hwc(&ResizeArg);
                 
                 //Send Face in to PC
-                payload->x = bboxes[i].xmin;
-                payload->y = bboxes[i].ymin;
-                payload->w = bboxes[i].w;
-                payload->h = bboxes[i].h;
+                payload->x = (int32_t) bboxes[i].xmin;
+                payload->y = (int32_t) bboxes[i].ymin;
+                payload->w = (int32_t) bboxes[i].w;
+                payload->h = (int32_t) bboxes[i].h;
                 payload->face_bb = face_in;
+                
                 send_image_payload(uart_device, payload);
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
                 
