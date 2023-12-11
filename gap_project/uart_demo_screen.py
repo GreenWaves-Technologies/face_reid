@@ -13,7 +13,7 @@ from scipy.spatial import distance
 
 GAP_UART_BAUDRATE=1152000
 UART_DEV='/dev/ttyUSB1'
-
+THRESHOLD=0.6
 
 UART_START_STREAM=b'\x0F\xF0'
 
@@ -28,6 +28,7 @@ def receive_image(ser,l,t,face_db):
     while True:
         read_bytes = ser.read(2)
         #print(read_bytes)
+        offset=0
         if read_bytes == UART_START_STREAM:
             try: 
                 #size_payload = ser.read(1)
@@ -35,7 +36,6 @@ def receive_image(ser,l,t,face_db):
                 #print("num payloads:" + str(data_size) )
                 scene = np.zeros((480, 800, 3), np.uint8) #320 left
                 scene[:,480:,:] = 255
-                
                 while read_image_byte(ser)!=255:
                 #for x in range(data_size):
                     coords_data = ser.read(4)
@@ -66,16 +66,48 @@ def receive_image(ser,l,t,face_db):
                         w=480-x
                     if y+h>=480:
                         h=480-y
+                    if x<0:
+                        x=0
+                    if y<0:
+                        y=0
                     scene[y:y+h,x:x+w,:]=face_bb[0:h,0:w,:]
                     
+                    name=""
+                    score=0
                     for x in face_db:
-                        result = 1-distance.cosine(face_id,x['face_id'])
-                        if result>1:
-                            result=1
-                        if result<0:
-                            result=0
-                        print(result)
-
+                        score_tmp = 1-distance.cosine(face_id,x['face_id'])
+                        # if score_tmp>1:
+                        #     score_tmp=1
+                        # if score_tmp<0:
+                        #     score_tmp=0
+                        if score_tmp > score and score_tmp > THRESHOLD:
+                            score = score_tmp
+                            name = x['name']
+                        #print("name: ",name," score: ",score)
+                    if name != "":
+                        rect_res = np.ones((120,320,3),np.uint8)
+                        rect_res[0:120,0:10] = 125
+                        rect_res[0:10,0:320] = 125
+                        rect_res[0:120,-10:-1] = 125
+                        rect_res[-10:-1,0:320] = 125
+                        cv2.putText(rect_res, f'{name}',
+                            (20,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
+                        cv2.putText(rect_res, f'score: {round(score,2)}%',
+                            (20,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
+                        scene[offset:offset+120,480:800,:]=rect_res
+                    else:
+                        rect_res = np.ones((120,320,3),np.uint8)
+                        rect_res[0:120,0:10] = 125
+                        rect_res[0:10,0:320] = 125
+                        rect_res[0:120,-10:-1] = 125
+                        rect_res[-10:-1,0:320] = 125
+                        cv2.putText(rect_res, f'Unknown person',
+                            (20,40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
+                        # cv2.putText(rect_res, f'score: {round(score,2)}%',
+                        #     (20,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
+                        scene[offset:offset+120,480:800,:]=rect_res
+                    offset=offset+120
+                    
                     
                 
                 #scene = scene[:, :, ::-1]
