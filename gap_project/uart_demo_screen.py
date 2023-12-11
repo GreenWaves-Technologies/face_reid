@@ -72,7 +72,8 @@ def receive_image(ser,l,t,face_db):
                     if y<0:
                         h=h+y
                         y=0
-                    scene[y:y+h,x:x+w,:]=face_bb[0:h,0:w,:]
+                    ##Moved down
+                    #scene[y:y+h,x:x+w,:]=face_bb[0:h,0:w,:]
                     
                     name=""
                     score=0
@@ -106,8 +107,9 @@ def receive_image(ser,l,t,face_db):
                         #     (20,90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
                     scene[offset:offset+120,480:800,:]=rect_res
                     point_y=int(y+(h/2))
-                    point_x=int(x+w)
+                    point_x=int(x+w/2)
                     cv2.line(scene, (point_x,point_y), (480,offset+60), (125, 125, 125), thickness=3, lineType=8)
+                    scene[y:y+h,x:x+w,:]=face_bb[0:h,0:w,:]
                     offset=offset+120
                 
                 #scene = scene[:, :, ::-1]
