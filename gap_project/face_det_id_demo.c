@@ -74,7 +74,7 @@ static void ISP_cluster_main(ArgISPCluster_T *ArgC)
     pi_perf_start();
 
     demosaic_image(ArgC->ImageIn, ArgC->ImageOut);
-    white_balance_HWC_L3Histogram(ArgC->ImageOut,95);
+    white_balance_HWC_L3(ArgC->ImageOut,ArgC->ImageOut,98);
     
     pi_perf_stop();
     perf_count = pi_perf_read(PI_PERF_CYCLES);
