@@ -60,13 +60,13 @@ python uart_demo_screen.py
 
 Note the following at the beginning of the PC code there is a setting of the UART device name: `UART_DEV='/dev/ttyUSB1'`. You might need to change it depending on your PC connected devices. 
 
-### Add people to Database
+## Add people to Database
 
 First you need to use the mode 3 to create one or more signatures to add people in the database, then rename the generated `.bin` with the person name. The code on Gap will retreive an image, after demosaicing and white balace, run the face detection and then send the face bouding box + the face id signature for each detected face in the image. The PC python code will load all the `namexxx.bin` files in the `signatures` folder and try to match it with the signatures received from GAP through the UART. 
 
-### Algorithm settings
+## Algorithm settings
 
-#### Max Faces to detect
+### Max Faces to detect
 
 This setting defines the maximum number detected faces that are passed to face ID and then sent to PC. If you increase it, please also consider change the graphical interface in the uart_demo_screen file accordingly, since you will run out of space. 
 
@@ -76,7 +76,7 @@ This setting defines the maximum number detected faces that are passed to face I
 
 You can find it at the beginning of face_det_id_demo.c file. 
 
-#### Face Detection Threshold
+### Face Detection Threshold
 
 You can modify the face detection threshold at the beginning of face_det_id_demo.c file, modifying the FACE_DETECTION_THRESHOLD value, the higher the less false negatives, but also the more false positives.
 
@@ -84,7 +84,7 @@ You can modify the face detection threshold at the beginning of face_det_id_demo
 #define FACE_DETECTION_THRESHOLD (0.50f)
 ```
 
-#### Face ID Threshold
+### Face ID Threshold
 
 Inside the `uart_demo_screen.py` file you have a threshold setting `THRESHOLD=0.50`, this threshold is calcualted as `1 - cosine_distance(each_face_in_database, current_received_signature)`, the higher value return if it is also higher than THRESHOLD is considered as a match
 
