@@ -24,17 +24,10 @@
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
 
-/////////////// DB CONFIGURATIONS 
+/////////////// CONFIGURATIONS 
 
-#define MAX_FACES 5
-#define FACE_DB_FILE_NUM 1
-
-char *face_db_files[1] = {
-    __XSTR(DB_1),
-    // __XSTR(DB_2),
-    // __XSTR(DB_3),
-    // __XSTR(DB_4)
-};
+#define MAX_FACES 4
+#define FACE_DETECTION_THRESHOLD (0.50f)
 
 /////////////// 
 
@@ -465,7 +458,7 @@ int face_id(void)
             }
         }
 
-        post_process(scores,boxes,bboxes,480,480, 0.50f);
+        post_process(scores,boxes,bboxes,480,480, FACE_DETECTION_THRESHOLD);
 
         non_max_suppress(bboxes);
         //printBboxes_forPython(bboxes);
@@ -500,12 +493,6 @@ int face_id(void)
                     bboxes[i].h = bboxes[i].h+bboxes[i].ymin;
                     bboxes[i].ymin=0;
                 }
-                // if(bboxes[i].xmin+bboxes[i].w>480){
-                //     bboxes[i].w=bboxes[i].w+bboxes[i].xmin;
-                // }
-                // if(bboxes[i].ymin+bboxes[i].h>480){
-                //     bboxes[i].h = bboxes[i].h+bboxes[i].ymin;
-                // }
 
                 uint8_t * face_in = pi_l2_malloc((int)bboxes[i].w*(int)bboxes[i].h*3);
                 if(face_in==NULL || face_out==NULL){

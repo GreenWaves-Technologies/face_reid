@@ -1,6 +1,6 @@
 # Face Re-Identification on Gap9
 
-This project shows Face Detection + Face Identification on Gap9. The project is composed of two Neural Networks running on Gap9 and some ISP features. The following picture resumes the full processing:
+This project shows Face Detection + Face Identification on Gap9. The project is composed of two neural networks running on Gap9 and some ISP features. The following picture resumes the full processing:
 
 <p align="center">
   <img src="readme_images/Face_REID_Algo.png" alt="Face Reid Processing on Gap9" />
@@ -16,7 +16,7 @@ Initialize the build directory and open the cmake menuconfig:
 # Init cmake build directory, named "build"
 cmake -B build
 # Configure the application, using build directory "build"
-# --> here you can choose running modes and all SDK settigns
+# --> here you can choose running modes and all SDK settings
 cmake --build build --target menuconfig
 ```
 
@@ -58,9 +58,35 @@ The second one where you run the PC code:
 python uart_demo_screen.py
 ```
 
-Pay attention at the beggining on the PC code there is a setting of the UART device name: `UART_DEV='/dev/ttyUSB1'`. You might need to change it depending on your PC connected devices. 
+Note the following at the beginning of the PC code there is a setting of the UART device name: `UART_DEV='/dev/ttyUSB1'`. You might need to change it depending on your PC connected devices. 
 
-To add people in the database you need to use the mode 3 to create one or more signatures and then rename the generated `.bin` with the person name. The code on Gap will retreive an image, after demosaicing and white balace, run the face detection and then send the face bouding box + the face id signature for each detected face in the image. The PC python code will load all the signature.bin files in the `signatures` folder and try to match it with the signatures received from GAP through the UART. Inside the `uart_demo_screen.py` file you also have a threshold setting `THRESHOLD=0.50` which you can change. This threshold is calcualted as 1 - cosine_distance(each_face_in_database, current_received_signature).
+### Add people to Database
+
+First you need to use the mode 3 to create one or more signatures to add people in the database, then rename the generated `.bin` with the person name. The code on Gap will retreive an image, after demosaicing and white balace, run the face detection and then send the face bouding box + the face id signature for each detected face in the image. The PC python code will load all the `namexxx.bin` files in the `signatures` folder and try to match it with the signatures received from GAP through the UART. 
+
+### Algorithm settings
+
+#### Max Faces to detect
+
+This setting defines the maximum number detected faces that are passed to face ID and then sent to PC. If you increase it, please also consider change the graphical interface in the uart_demo_screen file accordingly, since you will run out of space. 
+
+```
+#define MAX_FACES 4
+```
+
+You can find it at the beginning of face_det_id_demo.c file. 
+
+#### Face Detection Threshold
+
+You can modify the face detection threshold at the beginning of face_det_id_demo.c file, modifying the FACE_DETECTION_THRESHOLD value, the higher the less false negatives, but also the more false positives.
+
+```
+#define FACE_DETECTION_THRESHOLD (0.50f)
+```
+
+#### Face ID Threshold
+
+Inside the `uart_demo_screen.py` file you have a threshold setting `THRESHOLD=0.50`, this threshold is calcualted as `1 - cosine_distance(each_face_in_database, current_received_signature)`, the higher value return if it is also higher than THRESHOLD is considered as a match
 
 **Attention: This mode can only be run on target board!**
 To select it you can go to menuconfig `GAP_SDK --> Platform` and select board.

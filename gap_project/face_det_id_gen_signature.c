@@ -22,7 +22,7 @@
 #include "post_process.h"
 
 #define GEN_SIGNATURE_IMAGES 3
-
+#define FACE_DETECTION_THRESHOLD (0.50f)
 
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
@@ -394,7 +394,7 @@ int face_id(void)
             }
         }
 
-        post_process(scores,boxes,bboxes,480,480, 0.50f);
+        post_process(scores,boxes,bboxes,480,480, FACE_DETECTION_THRESHOLD);
 
         non_max_suppress(bboxes);
         //printBboxes_forPython(bboxes);
