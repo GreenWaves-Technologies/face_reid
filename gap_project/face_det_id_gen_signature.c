@@ -22,7 +22,7 @@
 #include "post_process.h"
 
 #define GEN_SIGNATURE_IMAGES 3
-
+#define FACE_DETECTION_THRESHOLD (0.50f)
 
 #define __XSTR(__s) __STR(__s)
 #define __STR(__s) #__s
@@ -349,8 +349,9 @@ int face_id(void)
         ISP_Filtering(&cluster_dev,ImageIn, ImageOut_ram);
 
         pi_l2_free(ImageIn,480*480);
-    
-        //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, ImageOut_ram, RGB888_IO);
+
+        //uncomment to save image after collection and ISP
+        //WriteImageToFileL3(ram,"../input_rgb.ppm", 480,480,3, (uint32_t) ImageOut_ram, RGB888_IO);
 
         //////// Calling Face Detection
         {
@@ -393,7 +394,7 @@ int face_id(void)
             }
         }
 
-        post_process(scores,boxes,bboxes,480,480, 0.50f);
+        post_process(scores,boxes,bboxes,480,480, FACE_DETECTION_THRESHOLD);
 
         non_max_suppress(bboxes);
         //printBboxes_forPython(bboxes);
@@ -442,7 +443,7 @@ int face_id(void)
                 
                 pi_l2_free(face_in,(int)bboxes[i].w*(int)bboxes[i].h*3);
                 
-                //histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
+                histogram_eq_HWC_fc(face_out, FACE_ID_W, FACE_ID_H);
                 sprintf(im_name,"../signatures/face_id_input_rgb_%02d_%02d.ppm",iter,face_det_num++);
                 WriteImageToFile(im_name, 112,112,3, face_out, RGB888_IO);
 
