@@ -51,7 +51,7 @@ if __name__ == "__main__":
     CALIBRATION_IMGS = []
 
     #init seed to be reproducible choices
-    #random.seed(10)
+    random.seed(10)
 
     for root, dirs, files in os.walk(args.quant_files):
         for file in files:
