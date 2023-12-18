@@ -9,6 +9,7 @@ variants:
         flags:
             - CONFIG_ONLY_FACE_ID_INFERENCE=y
             - CONFIG_CI=y
+            - CONFIG_ENABLE_AUTOTILER=y
             - CONFIG_CNN_SQ8=y
             - CONFIG_CNN_POW2=n
             - CONFIG_CNN_FP16=y
@@ -22,17 +23,8 @@ variants:
             - CONFIG_MODEL_L1_MEMORY=128000
             - CONFIG_MODEL_L2_MEMORY=512000
             - CONFIG_MODEL_L3_MEMORY=8000000
-            - CONFIG_MODEL_LOGLEVEL=1
-            - CONFIG_MODEL_BUILDDIR="BUILD_MODEL"
-            - CONFIG_MODEL_FLASH_TYPE_DEFAULT=y
-            - CONFIG_MODEL_RAM_TYPE_DEFAULT=y
-            - CONFIG_MODEL_LOGLEVEL=1
             - CONFIG_MODEL_FLOAT16_TYPE_BFLOAT16=y
             - CONFIG_MODEL_DSP_FLOAT16_TYPE_IEEE16=y
-            - CONFIG_NNTOOL_SCRIPT_PATH="model/generate_at_model.py"
-            - CONFIG_NNTOOL_MODEL_PATH="model/face_id.onnx"
-            - CONFIG_NNTOOL_COPY_MODEL_TO_BUILDDIR=y
-            - CONFIG_NNTOOL_LOGLEVEL="warning"
             - CONFIG_USE_PRIVILEGED_MRAM=n
             - CONFIG_CL_MASTER_CORE_STACK_SIZE=4096
             - CONFIG_CL_SLAVE_CORE_STACK_SIZE=1024
@@ -58,6 +50,7 @@ variants:
         flags:
             - CONFIG_ONLY_FACE_ID_INFERENCE=y
             - CONFIG_CI=y
+            - CONFIG_ENABLE_AUTOTILER=y
             - CONFIG_CNN_SQ8=y
             - CONFIG_CNN_POW2=n
             - CONFIG_CNN_FP16=y
@@ -71,17 +64,8 @@ variants:
             - CONFIG_MODEL_L1_MEMORY=128000
             - CONFIG_MODEL_L2_MEMORY=512000
             - CONFIG_MODEL_L3_MEMORY=8000000
-            - CONFIG_MODEL_LOGLEVEL=1
-            - CONFIG_MODEL_BUILDDIR="BUILD_MODEL"
-            - CONFIG_MODEL_FLASH_TYPE_DEFAULT=y
-            - CONFIG_MODEL_RAM_TYPE_DEFAULT=y
-            - CONFIG_MODEL_LOGLEVEL=1
             - CONFIG_MODEL_FLOAT16_TYPE_BFLOAT16=y
             - CONFIG_MODEL_DSP_FLOAT16_TYPE_IEEE16=y
-            - CONFIG_NNTOOL_SCRIPT_PATH="model/generate_at_model.py"
-            - CONFIG_NNTOOL_MODEL_PATH="model/face_id.onnx"
-            - CONFIG_NNTOOL_COPY_MODEL_TO_BUILDDIR=y
-            - CONFIG_NNTOOL_LOGLEVEL="warning"
             - CONFIG_USE_PRIVILEGED_MRAM=n
             - CONFIG_CL_MASTER_CORE_STACK_SIZE=4096
             - CONFIG_CL_SLAVE_CORE_STACK_SIZE=1024
@@ -107,6 +91,7 @@ variants:
         flags:
             - CONFIG_FACE_DETECTION_ID_INFERENCE=y
             - CONFIG_CI=y
+            - CONFIG_ENABLE_AUTOTILER=y
             - CONFIG_CNN_SQ8=y
             - CONFIG_CNN_POW2=n
             - CONFIG_CNN_FP16=y
@@ -117,20 +102,8 @@ variants:
             - CONFIG_FREQUENCY_PERIPH=370000000
             - CONFIG_FREQUENCY_FC=370000000
             - CONFIG_FREQUENCY_CLUSTER=370000000
-            - CONFIG_MODEL_L1_MEMORY=128000
-            - CONFIG_MODEL_L2_MEMORY=512000
-            - CONFIG_MODEL_L3_MEMORY=8000000
-            - CONFIG_MODEL_LOGLEVEL=1
-            - CONFIG_MODEL_BUILDDIR="BUILD_MODEL"
-            - CONFIG_MODEL_FLASH_TYPE_DEFAULT=y
-            - CONFIG_MODEL_RAM_TYPE_DEFAULT=y
-            - CONFIG_MODEL_LOGLEVEL=1
             - CONFIG_MODEL_FLOAT16_TYPE_BFLOAT16=y
             - CONFIG_MODEL_DSP_FLOAT16_TYPE_IEEE16=y
-            - CONFIG_NNTOOL_SCRIPT_PATH="model/generate_at_model.py"
-            - CONFIG_NNTOOL_MODEL_PATH="model/face_id.onnx"
-            - CONFIG_NNTOOL_COPY_MODEL_TO_BUILDDIR=y
-            - CONFIG_NNTOOL_LOGLEVEL="warning"
             - CONFIG_USE_PRIVILEGED_MRAM=n
             - CONFIG_CL_MASTER_CORE_STACK_SIZE=4096
             - CONFIG_CL_SLAVE_CORE_STACK_SIZE=1024
@@ -156,6 +129,7 @@ variants:
         flags:
             - CONFIG_FACE_DETECTION_ID_INFERENCE=y
             - CONFIG_CI=y
+            - CONFIG_ENABLE_AUTOTILER=y
             - CONFIG_CNN_SQ8=y
             - CONFIG_CNN_POW2=n
             - CONFIG_CNN_FP16=y
@@ -169,17 +143,8 @@ variants:
             - CONFIG_MODEL_L1_MEMORY=128000
             - CONFIG_MODEL_L2_MEMORY=512000
             - CONFIG_MODEL_L3_MEMORY=8000000
-            - CONFIG_MODEL_LOGLEVEL=1
-            - CONFIG_MODEL_BUILDDIR="BUILD_MODEL"
-            - CONFIG_MODEL_FLASH_TYPE_DEFAULT=y
-            - CONFIG_MODEL_RAM_TYPE_DEFAULT=y
-            - CONFIG_MODEL_LOGLEVEL=1
             - CONFIG_MODEL_FLOAT16_TYPE_BFLOAT16=y
             - CONFIG_MODEL_DSP_FLOAT16_TYPE_IEEE16=y
-            - CONFIG_NNTOOL_SCRIPT_PATH="model/generate_at_model.py"
-            - CONFIG_NNTOOL_MODEL_PATH="model/face_id.onnx"
-            - CONFIG_NNTOOL_COPY_MODEL_TO_BUILDDIR=y
-            - CONFIG_NNTOOL_LOGLEVEL="warning"
             - CONFIG_USE_PRIVILEGED_MRAM=n
             - CONFIG_CL_MASTER_CORE_STACK_SIZE=4096
             - CONFIG_CL_SLAVE_CORE_STACK_SIZE=1024
