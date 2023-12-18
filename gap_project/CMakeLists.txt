@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(TARGET_NAME         face_id)
-
+SET(CONFIG_CI yes)
 ###############################################################################
 # CMake pre initialization
 ###############################################################################
@@ -38,10 +38,6 @@ elseif(CONFIG_DEMO)
 	list(APPEND TARGET_SRCS post_process.c)
   	list(APPEND TARGET_CFLAGS -DFLOAT_POST_PROCESS )
 	
-	#Here adding all face ID database files to flash and passing names to main
-  	#list(APPEND TARGET_PREPROCESSOR -DDB_1=francesco.bin)
-	#readfs_add_files(FILES ${CMAKE_CURRENT_SOURCE_DIR}/signatures/francesco.bin FLASH ${READFS_FLASH})
-  	
 endif()
 
 ###############################################################################
@@ -54,9 +50,10 @@ math(EXPR FACEDET_L3_SIZE "1024*1024*16")
 ### FACE ID Model
 
 set(BUILD_MODEL_FACEID BUILD_MODEL_FACEID)
+#set(BUILD_MODEL_FACEID BUILD_MODEL)
 
 set(FACEID_TARGET_NAME       face_id)
-set(FACEID_AT_MODEL_DIR      ${CMAKE_CURRENT_BINARY_DIR}/${BUILD_MODEL_FACEID})
+set(FACEID_AT_MODEL_DIR      ${CMAKE_BINARY_DIR}/${BUILD_MODEL_FACEID})
 set(MODEL_EXPRESSIONS        ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}Expression_Kernels.c)
 
 set(FACEID_AT_BIN            ${FACEID_TARGET_NAME}GenTile)
@@ -76,8 +73,28 @@ else()
   set(NNTOOL_SCRIPT_CI 0)
 endif()
 
+autotiler_add_model(
+  TARGET_NAME ${FACEID_TARGET_NAME}
+  MODEL_PATH ${FACEID_AT_MODEL_PATH}
+  MODEL_TENSORS_DIR ${FACEID_AT_TENSORS_DIR}
+  #APP_NAME face_id 
+  MODEL_BUILDDIR ${BUILD_MODEL_FACEID}
+  #KERNEL_NAME face_idKernels
+  GEN_NAME face_id
+  PRI1_USED TRUE
+  PRI1_FLASH flash
+  #PRI1_FLASH mram
+  L1_MEMORY 100000 #${CONFIG_MODEL_L1_MEMORY}
+  L2_MEMORY 512000 #${CONFIG_MODEL_L2_MEMORY}
+  L3_MEMORY ${FACEID_L3_SIZE}
+  #L2STATIC_MEMORY ${CONFIG_MODEL_L2STATIC_MEMORY}
+  #L3STATIC_MEMORY ${CONFIG_MODEL_L3STATIC_MEMORY}
+)
+
+
+
 add_custom_command(
-  OUTPUT ${FACEID_AT_MODEL_PATH} #${MODEL_EXPRESSIONS}
+  OUTPUT  ${FACEID_AT_MODEL_PATH} #${MODEL_EXPRESSIONS}
   COMMENT "Generate the autotiler model: ${FACEID_NNTOOL_MODEL}"
   DEPENDS ${FACEID_NNTOOL_PY}
   COMMAND python3 ${FACEID_NNTOOL_PY} --model_path=${FACEID_NNTOOL_MODEL_PATH}
@@ -89,55 +106,6 @@ add_custom_command(
 									  --CI=${NNTOOL_SCRIPT_CI}
 									  --graph_warm_construct=${GRAPH_WARM}
 )
-#add_custom_target(${FACEID_TARGET_NAME}at_model_gen DEPENDS ${FACEID_NNTOOL_PY})
-
-add_custom_command(
-  OUTPUT ${FACEID_AT_BIN_PATH}
-  COMMENT "Generate AT binary for User Kernels generation: ${FACEID_AT_MODEL_NAME}"
-  DEPENDS ${FACEID_AT_MODEL_PATH}
-  COMMAND gcc -o${FACEID_AT_BIN_PATH}
-				  ${FLOAT_PREC} 
-				  -I${TILER_INC} 
-				  -I${TILER_EMU_INC}
-				  -I$ENV{GAP_H_INC}
-				  -I${TILER_DSP_KERNEL_PATH}
-				  -I${TILER_CNN_GENERATOR_PATH_SQ8}
-				  -I${TILER_CNN_GENERATOR_PATH_FP16}
-				  -I${TILER_CNN_GENERATOR_PATH_NE16}
-				  -I${TILER_CNN_GENERATOR_PATH}
-				  -I${TILER_CNN_KERNEL_PATH}
-				  -I${TILER_CNN_KERNEL_PATH_SQ8}
-				  -I${TILER_CNN_KERNEL_PATH_FP16}
-				  -I${TILER_CNN_KERNEL_PATH_NE16}
-				  -I${MODEL_GEN_INCLUDE_SQ8}
-				  -I${MODEL_GEN_INCLUDE_POW2}
-				  -I${MODEL_GEN_INCLUDE_FP16}
-				  ${CNN_GEN} ${TILER_LIB}
-				  ${MODEL_GEN_SQ8}
-				  ${MODEL_GEN_FP16}
-				  ${MODEL_GEN_NE16}
-				  ${MODEL_GEN_POW2} 
-				  ${MODEL_GEN}
-				  ${FACEID_AT_MODEL_DIR}/${FACEID_AT_MODEL_NAME} 
-				  ${TILER_LIB}
-)
-
-#add_custom_target(${FACEID_TARGET_NAME}at_model_compile DEPENDS ${FACEID_AT_MODEL_PATH})
-
-add_custom_command( 
-  OUTPUT ${FACEID_KERNEL_C}
-  COMMENT "Generate Autotiler User Kernels: ${FACEID_AT_MODEL_NAME}"
-  DEPENDS ${FACEID_AT_BIN_PATH}
-  COMMAND ${FACEID_AT_MODEL_DIR}/${FACEID_AT_BIN} 
-		  -c${FACEID_AT_TENSORS_DIR} 
-		  -o${FACEID_AT_MODEL_DIR}
-		  --L1=100000 
-		  --L2=512000
-		  --L3=${FACEID_L3_SIZE}
-		  
-)
-
-readfs_add_files(FILES ${FACEID_AT_MODEL_DIR}/${FACEID_TARGET_NAME}_L3_Flash_Const.dat FLASH ${READFS_FLASH})
 
 ### FACE Detection Model
 
@@ -147,7 +115,7 @@ if(CONFIG_FACE_DETECTION_ID_INFERENCE OR CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE 
 
   set(FACEDET_TARGET_NAME       face_det)
   set(FACEDET_AT_MODEL_DIR      ${CMAKE_CURRENT_BINARY_DIR}/${BUILD_MODEL_FACEDET})
-  set(MODEL_EXPRESSIONS        ${FACEDET_AT_MODEL_DIR}/${FACEDET_TARGET_NAME}Expression_Kernels.c)
+  set(MODEL_EXPRESSIONS         ${FACEDET_AT_MODEL_DIR}/${FACEDET_TARGET_NAME}Expression_Kernels.c)
 
   set(FACEDET_AT_BIN            ${FACEDET_TARGET_NAME}GenTile)
   set(FACEDET_AT_BIN_PATH       ${FACEDET_AT_MODEL_DIR}/${FACEDET_TARGET_NAME}GenTile)
@@ -166,6 +134,24 @@ if(CONFIG_FACE_DETECTION_ID_INFERENCE OR CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE 
 	set(NNTOOL_SCRIPT_CI 0)
   endif()
 
+  autotiler_add_model(
+	TARGET_NAME ${FACEDET_TARGET_NAME}
+	MODEL_PATH ${FACEDET_AT_MODEL_PATH}
+	MODEL_TENSORS_DIR ${FACEDET_AT_TENSORS_DIR}
+	MODEL_BUILDDIR ${BUILD_MODEL_FACEDET}
+	GEN_NAME face_det
+	PRI1_USED TRUE
+	PRI1_FLASH flash
+	#PRI1_FLASH mram
+	L1_MEMORY 100000 #${CONFIG_MODEL_L1_MEMORY}
+	L2_MEMORY 900000 #${CONFIG_MODEL_L2_MEMORY}
+	L3_MEMORY ${FACEID_L3_SIZE}
+	#L2STATIC_MEMORY ${CONFIG_MODEL_L2STATIC_MEMORY}
+	#L3STATIC_MEMORY ${CONFIG_MODEL_L3STATIC_MEMORY}
+  )
+  
+
+
   add_custom_command(
 	OUTPUT ${FACEDET_AT_MODEL_PATH} #${MODEL_EXPRESSIONS}
 	COMMENT "Generate the autotiler model: ${FACEDET_NNTOOL_MODEL}"
@@ -177,53 +163,6 @@ if(CONFIG_FACE_DETECTION_ID_INFERENCE OR CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE 
 										--gen_name_suffix=${FACEDET_TARGET_NAME}
 										--graph_warm_construct=3
   )
-  #add_custom_target(${FACEDET_TARGET_NAME}at_model_gen DEPENDS ${FACEDET_NNTOOL_PY})
-
-  add_custom_command(
-	OUTPUT ${FACEDET_AT_BIN_PATH}
-	COMMENT "Generate AT binary for User Kernels generation: ${FACEDET_AT_MODEL_NAME}"
-	DEPENDS ${FACEDET_AT_MODEL_PATH}
-	COMMAND gcc -o${FACEDET_AT_BIN_PATH}
-					${FLOAT_PREC} 
-					-I${TILER_INC} 
-					-I${TILER_EMU_INC}
-					-I$ENV{GAP_H_INC}
-					-I${TILER_ISP_GENERATOR_PATH}
-					-I${TILER_DSP_KERNEL_PATH}
-					-I${TILER_CNN_GENERATOR_PATH_SQ8}
-					-I${TILER_CNN_GENERATOR_PATH_FP16}
-					-I${TILER_CNN_GENERATOR_PATH_NE16}
-					-I${TILER_CNN_GENERATOR_PATH}
-					-I${TILER_CNN_KERNEL_PATH}
-					-I${TILER_CNN_KERNEL_PATH_SQ8}
-					-I${TILER_CNN_KERNEL_PATH_FP16}
-					-I${TILER_CNN_KERNEL_PATH_NE16}
-					-I${MODEL_GEN_INCLUDE_SQ8}
-					-I${MODEL_GEN_INCLUDE_POW2}
-					-I${MODEL_GEN_INCLUDE_FP16}
-					${CNN_GEN} ${TILER_LIB}
-					${MODEL_GEN_POW2} 
-					${MODEL_GEN_SQ8}
-					${MODEL_GEN_FP16}
-					${MODEL_GEN_NE16}
-					${MODEL_GEN}
-					${FACEDET_AT_MODEL_DIR}/${FACEDET_AT_MODEL_NAME} 
-					${TILER_LIB}
-  )
-
-  add_custom_command( 
-	OUTPUT ${FACEDET_KERNEL_C}
-	COMMENT "Generate Autotiler User Kernels: ${FACEDET_AT_MODEL_NAME}"
-	DEPENDS ${FACEDET_AT_BIN_PATH}
-	COMMAND ${FACEDET_AT_MODEL_DIR}/${FACEDET_AT_BIN} 
-			-c${FACEDET_AT_TENSORS_DIR} 
-			-o${FACEDET_AT_MODEL_DIR}
-			--L1=100000 
-			--L2=900000
-			--L3=${FACEDET_L3_SIZE}
-  )
-
-  readfs_add_files(FILES ${FACEDET_AT_MODEL_DIR}/${FACEDET_TARGET_NAME}_L3_Flash_Const.dat FLASH ${READFS_FLASH})
 
   list(APPEND TARGET_CFLAGS -DIN_FILE_PATH=\"${CMAKE_SOURCE_DIR}/hd_samples/hd02.pgm\")
 
@@ -238,43 +177,6 @@ if(CONFIG_FACE_DETECTION_ID_INFERENCE OR CONFIG_FACE_DETECTION_ID_GEN_SIGNATURE 
   set(MODEL_GEN_H ${MODEL_GEN}.h)
   set(MODEL_GEN_CLEAN ${MODEL_GEN_C} ${MODEL_GEN_H})
   set(ISP_USER_KER_C  ${CMAKE_BINARY_DIR}/${MODEL_GEN_C})
-
-  # list(APPEND TARGET_SRCS demosaicing.c
-  #                         ${ISP_KER_PATH}/ISP_BasicKernels.c
-  #                         ${MODEL_GEN_C}
-  #                         $ENV{TILER_EMU_INC}
-  #                         $ENV{TILER_INC}
-  #                         ${ISP_KER_PATH}
-  #                         $ENV{TILER_DSP_KERNEL_PATH}
-  #                         $ENV{TILER_CNN_KERNEL_PATH_FP16}
-
-  # )
-
-  # list(APPEND TARGET_COMPILE_OPTIONS  -O3
-  #                                     -mno-memcpy
-  #                                     -fno-tree-loop-distribute-patterns
-  #                                     -Wno-maybe-uninitialized
-  #                                     -Wno-unused-but-set-variable
-  #                                     -Wno-unused-variable
-  #                                     -DOUT_FILE_PATH=\"${CMAKE_SOURCE_DIR}/rgb_out.ppm\"
-  #                                     -I$ENV{GAP_SDK_HOME}/tools/autotiler_v3/Emulation
-  #                                     -I$ENV{GAP_SDK_HOME}/tools/autotiler_v3/Autotiler
-  #                                     -I$ENV{GAP_SDK_HOME}/tools/autotiler_v3/ISP_Generators
-  #                                     -I$ENV{GAP_SDK_HOME}/tools/autotiler_v3/ISP_Libraries
-  #                                     -I$ENV{GAP_SDK_HOME}/tools/autotiler_v3/CNN_Libraries_fp16/
-  #                                     -I${CMAKE_BINARY_DIR}
-  # )
-
-
-  #if(CONFIG_TEST_VGA)
-  #    list(APPEND TARGET_COMPILE_OPTIONS 
-  #        -DIN_FILE_PATH=\"${CMAKE_SOURCE_DIR}/vga_samples/test_image_raw_bayer.pgm\"
-  #        -DIMG_VGA=1)
-  #elseif(CONFIG_TEST_HD)
-  # list(APPEND TARGET_COMPILE_OPTIONS 
-  #     -DIN_FILE_PATH=\"${CMAKE_SOURCE_DIR}/hd_samples/hd02.pgm\"
-  #     -DIMG_HD=1)
-  #endif()
 
   add_custom_command(
 	  OUTPUT  ${CMAKE_BINARY_DIR}/GenTile
@@ -304,15 +206,7 @@ list(APPEND TARGET_SRCS ${MAIN}
                         ${ISP_USER_KER_C}
 						he.c
 						${CNN_LIB}
-						${FACEID_KERNEL_C}
-						${FACEDET_KERNEL_C}
-						${MODEL_LIB_SQ8}
-						${MODEL_LIB_FP16}
-						${MODEL_LIB_FP16X}
-						${MODEL_LIB_NE16}
-						#${MODEL_LIB_DSP}
-						#${CONFIG_MODEL_BUILDDIR}/${KERNEL_C}
-						#${MODEL_EXPRESSIONS}
+						${KERNEL_C_PATHS}
 )
 
 list(APPEND TARGET_INCS -I.
@@ -320,15 +214,9 @@ list(APPEND TARGET_INCS -I.
 						-I${TILER_EMU_INC}
 						-I$ENV{GAP_SDK_HOME}/libs/gap_lib/include
 						-I$ENV{GAP_SDK_HOME}/utils/power_meas_utils
-						#-I${CNN_LIB_INCLUDE}
 						-I${TILER_ISP_KERNEL_PATH}
 						-I$ENV{GAP_H_INC}
-						-I${TILER_CNN_KERNEL_PATH}
-						-I${TILER_CNN_KERNEL_PATH_SQ8}
-						-I${TILER_CNN_KERNEL_PATH_FP16}
-						-I${TILER_CNN_KERNEL_PATH_FP16X}
-						-I${TILER_CNN_KERNEL_PATH_NE16}
-						-I${TILER_DSP_KERNEL_PATH}
+						${CNN_LIB_INCLUDE}
 						-I${CMAKE_CURRENT_BINARY_DIR}/${BUILD_MODEL_FACEDET}
 						-I${CMAKE_CURRENT_BINARY_DIR}/${BUILD_MODEL_FACEID}
 						-I${CMAKE_CURRENT_SOURCE_DIR}
